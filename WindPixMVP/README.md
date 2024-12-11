@@ -1,4 +1,4 @@
-# WindPix MVP
+# WindPix MVP v0.1.0
 
 A command-line tool that automates the process of taking and sharing screenshots with Windsurf.
 

@@ -3,6 +3,9 @@ import Carbon
 import CoreGraphics
 import AppKit
 
+// Version
+let VERSION = "0.1.0"
+
 // Link Carbon framework
 #if canImport(Carbon)
 import Carbon.HIToolbox
@@ -32,40 +35,11 @@ class HotkeyManager {
         }
     }
     
-    func listWindows() {
-        print("\nListing all windows:")
-        let options = CGWindowListOption([.optionOnScreenOnly, .excludeDesktopElements])
-        let windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
-        
-        for window in windowList {
-            let ownerName = window[kCGWindowOwnerName as String] as? String ?? "Unknown"
-            let windowName = window[kCGWindowName as String] as? String ?? ""
-            let windowLayer = window[kCGWindowLayer as String] as? Int ?? 0
-            
-            // Only show windows that are likely to be application windows
-            if windowLayer == 0 {
-                print("- \(ownerName) (\(windowName))")
-            }
-        }
-    }
-    
     func findWindsurfWindow() -> NSRunningApplication? {
         let apps = NSWorkspace.shared.runningApplications
-        print("\nRunning applications:")
-        for app in apps {
-            if let name = app.localizedName {
-                print("- \(name)")
-            }
-        }
-        
-        // List all windows to help identify the correct application
-        listWindows()
-        
-        // Try different possible names
-        let possibleNames = ["Windsurf", "WindSurf", "windsurf", "Windsurf IDE", "WindsurfIDE"]
         return apps.first { app in
-            guard let name = app.localizedName else { return false }
-            return possibleNames.contains(name)
+            guard let name = app.localizedName?.lowercased() else { return false }
+            return name == "windsurf"
         }
     }
     
@@ -97,34 +71,41 @@ class HotkeyManager {
     }
     
     func automateSequence() {
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            do {
-                // First, focus the Windsurf window
-                try self.focusWindsurfWindow()
-                
-                // Then simulate Command + L to focus chat
-                try self.simulateKeyPress(keyCode: 0x25, flags: .maskCommand) // 'L' key
-                
-                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                    do {
-                        // Simulate Command + V to paste
-                        try self.simulateKeyPress(keyCode: 0x09, flags: .maskCommand) // 'V' key
-                        
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            do {
-                                // Simulate Return to send
-                                try self.simulateKeyPress(keyCode: 0x24, flags: []) // Return key
-                            } catch {
-                                print("Error simulating Return key: \(error)")
+        do {
+            // First simulate Command + Shift + 3 to take screenshot
+            try simulateKeyPress(keyCode: CGKeyCode(kVK_ANSI_3), flags: [.maskCommand, .maskShift])
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                do {
+                    // Then focus the Windsurf window
+                    try self.focusWindsurfWindow()
+                    
+                    // Then simulate Command + L to focus chat
+                    try self.simulateKeyPress(keyCode: 0x25, flags: .maskCommand) // 'L' key
+                    
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                        do {
+                            // Simulate Command + V to paste
+                            try self.simulateKeyPress(keyCode: 0x09, flags: .maskCommand) // 'V' key
+                            
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                do {
+                                    // Simulate Return to send
+                                    try self.simulateKeyPress(keyCode: 0x24, flags: []) // Return key
+                                } catch {
+                                    print("Error simulating Return key: \(error)")
+                                }
                             }
+                        } catch {
+                            print("Error simulating paste: \(error)")
                         }
-                    } catch {
-                        print("Error simulating paste: \(error)")
                     }
+                } catch {
+                    print("Error focusing Windsurf window: \(error)")
                 }
-            } catch {
-                print("Error focusing Windsurf window: \(error)")
             }
+        } catch {
+            print("Error taking screenshot: \(error)")
         }
     }
     
@@ -173,14 +154,10 @@ class HotkeyManager {
 }
 
 // Main execution
-print("Starting WindPix MVP...")
+print("Starting WindPix MVP v\(VERSION)...")
 
 let hotkeyManager = HotkeyManager()
 do {
-    // Print running applications and windows at startup
-    print("\nListing all running applications and windows to help identify Windsurf...")
-    _ = hotkeyManager.findWindsurfWindow()
-    
     try hotkeyManager.register()
     print("\nHotkey registered (Command + Option + P)")
     print("Press Ctrl+C to exit")

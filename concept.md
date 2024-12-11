@@ -9,7 +9,7 @@ WindPix is a macOS utility that streamlines the process of sharing screenshots w
    - Automatically copies screenshot to clipboard
 
 2. **Windsurf Integration**
-   - Automatically focuses Windsurf chat window (`cmd + l`)
+   - Automatically focuses Windsurf chat window (`cmd + shift + l`)
    - Pastes screenshot from clipboard (`cmd + v`)
    - Submits the image to LLM (Enter key)
 
@@ -19,10 +19,9 @@ WindPix is a macOS utility that streamlines the process of sharing screenshots w
    - Implement clipboard management
 
 2. **Automation Flow**
-   - Screenshot capture → 0s delay
-   - Focus Windsurf (`cmd + l`) → 0s delay
-   - Paste image (`cmd + v`) → 1s delay
-   - Submit (Enter key) → 1s delay
+   - Keyboard shortcut: `cmd + shift + l`
+   - Automatically focuses Windsurf window
+   - Handles screenshot pasting and submission
 
 ## User Experience
 - Single keyboard shortcut initiates entire workflow
@@ -30,7 +29,9 @@ WindPix is a macOS utility that streamlines the process of sharing screenshots w
 - Configurable delays between actions
 
 ## Future Enhancements
-- Configurable keyboard shortcuts
+- Configurable keyboard shortcuts![
+   
+](image.png)
 - Custom screenshot area selection
 - Success/failure notifications
 - Preview before sending

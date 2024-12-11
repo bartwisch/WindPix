@@ -5,8 +5,16 @@ import AppKit
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var hotkeyManager: HotkeyManager!
+    private var windsurfCheckTimer: Timer?
     
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Check if Windsurf is running
+        guard HotkeyManager.findWindsurfWindow() != nil else {
+            print("Windsurf is not running. Quitting WindPix...")
+            NSApplication.shared.terminate(nil)
+            return
+        }
+        
         // Create the status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
@@ -24,6 +32,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         statusItem.menu = menu
         
+        // Start periodic check for Windsurf
+        windsurfCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            if HotkeyManager.findWindsurfWindow() == nil {
+                print("Windsurf is no longer running. Quitting WindPix...")
+                NSApplication.shared.terminate(nil)
+            }
+        }
+        
         // Initialize hotkey manager
         hotkeyManager = HotkeyManager()
         do {
@@ -36,6 +52,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc func takeScreenshot() {
         hotkeyManager.automateSequence()
+    }
+    
+    func applicationWillTerminate(_ notification: Notification) {
+        windsurfCheckTimer?.invalidate()
     }
 }
 
@@ -62,7 +82,7 @@ class HotkeyManager {
         print("Accessibility trusted: \(trusted)")
     }
     
-    func findWindsurfWindow() -> NSRunningApplication? {
+    static func findWindsurfWindow() -> NSRunningApplication? {
         let apps = NSWorkspace.shared.runningApplications
         return apps.first { app in
             guard let name = app.localizedName?.lowercased() else { return false }
@@ -71,7 +91,7 @@ class HotkeyManager {
     }
     
     func focusWindsurfWindow() throws {
-        guard let windsurfApp = findWindsurfWindow() else {
+        guard let windsurfApp = HotkeyManager.findWindsurfWindow() else {
             print("Error: Windsurf application not found!")
             throw WindPixError.applicationNotFound
         }
@@ -103,9 +123,9 @@ class HotkeyManager {
     func automateSequence() {
         print("Starting automation sequence...")
         do {
-            print("Taking screenshot (Command + Shift + 3)...")
-            // First simulate Command + Shift + 3 to take screenshot
-            try simulateKeyPress(keyCode: CGKeyCode(kVK_ANSI_3), flags: [.maskCommand, .maskShift])
+            print("Taking screenshot (Command + Shift + Control + 3)...")
+            // First simulate Command + Shift + Control + 3 to copy screenshot to clipboard
+            try simulateKeyPress(keyCode: CGKeyCode(kVK_ANSI_3), flags: [.maskCommand, .maskShift, .maskControl])
             
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 do {
@@ -113,9 +133,10 @@ class HotkeyManager {
                     // Then focus the Windsurf window
                     try self.focusWindsurfWindow()
                     
-                    print("Focusing chat (Command + L)...")
-                    // Then simulate Command + L to focus chat
-                    try self.simulateKeyPress(keyCode: 0x25, flags: .maskCommand) // 'L' key
+                    print("Focusing chat (Command + Shift + L)...")
+                    // Then simulate Command + Shift + L to focus chat
+                    try self.simulateKeyPress(keyCode: 0x25, flags: [.maskCommand, .maskShift]) // 'L' key
+                    
                     
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                         do {

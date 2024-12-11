@@ -33,7 +33,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.menu = menu
         
         // Start periodic check for Windsurf
-        windsurfCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+        windsurfCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
             if HotkeyManager.findWindsurfWindow() == nil {
                 print("Windsurf is no longer running. Quitting WindPix...")
                 NSApplication.shared.terminate(nil)

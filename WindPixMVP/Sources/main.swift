@@ -6,6 +6,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var hotkeyManager: HotkeyManager!
     private var windsurfCheckTimer: Timer?
+    private var useFocusChat: Bool = true  // Default to true for existing behavior
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Check if Windsurf is running
@@ -27,6 +28,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "WindPix v\(VERSION)", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Take Screenshot (⌘P)", action: #selector(takeScreenshot), keyEquivalent: ""))
+        
+        let focusChatItem = NSMenuItem(title: "Focus Chat Before Paste", action: #selector(toggleFocusChat), keyEquivalent: "")
+        focusChatItem.state = useFocusChat ? .on : .off
+        menu.addItem(focusChatItem)
+        
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         
@@ -54,6 +60,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyManager.automateSequence()
     }
     
+    @objc func toggleFocusChat(_ sender: NSMenuItem) {
+        useFocusChat = !useFocusChat
+        sender.state = useFocusChat ? .on : .off
+        hotkeyManager.setUseFocusChat(useFocusChat)
+    }
+    
     func applicationWillTerminate(_ notification: Notification) {
         windsurfCheckTimer?.invalidate()
     }
@@ -63,6 +75,7 @@ class HotkeyManager {
     private var eventHandler: EventHandlerRef?
     private var hotKeyRef: EventHotKeyRef?
     private var keyMonitor: Any?
+    private var useFocusChat: Bool = true  // Default to true for existing behavior
     
     deinit {
         if let eventHandler = eventHandler {
@@ -120,6 +133,10 @@ class HotkeyManager {
         keyUpEvent.post(tap: .cghidEventTap)
     }
     
+    func setUseFocusChat(_ value: Bool) {
+        useFocusChat = value
+    }
+    
     func automateSequence() {
         print("Starting automation sequence...")
         do {
@@ -133,29 +150,48 @@ class HotkeyManager {
                     // Then focus the Windsurf window
                     try self.focusWindsurfWindow()
                     
-                    print("Focusing chat (Command + Shift + L)...")
-                    // Then simulate Command + Shift + L to focus chat
-                    try self.simulateKeyPress(keyCode: 0x25, flags: [.maskCommand, .maskShift]) // 'L' key
-                    
-                    
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                        do {
-                            print("Pasting screenshot (Command + V)...")
-                            // Simulate Command + V to paste
-                            try self.simulateKeyPress(keyCode: 0x09, flags: .maskCommand) // 'V' key
-                            
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                do {
-                                    print("Sending message (Return)...")
-                                    // Simulate Return to send
-                                    try self.simulateKeyPress(keyCode: 0x24, flags: []) // Return key
-                                    print("Sequence completed!")
-                                } catch {
-                                    print("Error simulating Return key: \(error)")
+                    if self.useFocusChat {
+                        print("Focusing chat (Command + Shift + L)...")
+                        // Then simulate Command + Shift + L to focus chat
+                        try self.simulateKeyPress(keyCode: 0x25, flags: [.maskCommand, .maskShift]) // 'L' key
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            do {
+                                print("Pasting screenshot (Command + V)...")
+                                // Simulate Command + V to paste
+                                try self.simulateKeyPress(keyCode: 0x09, flags: .maskCommand) // 'V' key
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    do {
+                                        print("Sending message (Return)...")
+                                        // Simulate Return to send
+                                        try self.simulateKeyPress(keyCode: 0x24, flags: []) // Return key
+                                    } catch {
+                                        print("Error sending message: \(error)")
+                                    }
                                 }
+                            } catch {
+                                print("Error pasting screenshot: \(error)")
                             }
-                        } catch {
-                            print("Error simulating paste: \(error)")
+                        }
+                    } else {
+                        // If not using focus chat, directly paste the screenshot
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            do {
+                                print("Pasting screenshot (Command + V)...")
+                                try self.simulateKeyPress(keyCode: 0x09, flags: .maskCommand) // 'V' key
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    do {
+                                        print("Sending message (Return)...")
+                                        try self.simulateKeyPress(keyCode: 0x24, flags: []) // Return key
+                                    } catch {
+                                        print("Error sending message: \(error)")
+                                    }
+                                }
+                            } catch {
+                                print("Error pasting screenshot: \(error)")
+                            }
                         }
                     }
                 } catch {

@@ -4,7 +4,7 @@ A command-line tool that automates the process of taking and sharing screenshots
 
 ## Features
 
-- Global hotkey (⌘⇧4) to trigger screenshot
+- Global hotkey (⌘⌥P) to trigger full screen screenshot
 - Automatic screenshot capture
 - Automatic pasting into Windsurf chat
 - Automatic message sending

@@ -13,6 +13,7 @@ enum WindPixError: Error {
     case hotkeyRegistrationFailed
     case simulationFailed
     case screenshotFailed
+    case applicationNotFound
 }
 
 // Global reference to the active HotkeyManager instance
@@ -28,6 +29,56 @@ class HotkeyManager {
         }
         if let hotKeyRef = hotKeyRef {
             UnregisterEventHotKey(hotKeyRef)
+        }
+    }
+    
+    func listWindows() {
+        print("\nListing all windows:")
+        let options = CGWindowListOption([.optionOnScreenOnly, .excludeDesktopElements])
+        let windowList = CGWindowListCopyWindowInfo(options, kCGNullWindowID) as? [[String: Any]] ?? []
+        
+        for window in windowList {
+            let ownerName = window[kCGWindowOwnerName as String] as? String ?? "Unknown"
+            let windowName = window[kCGWindowName as String] as? String ?? ""
+            let windowLayer = window[kCGWindowLayer as String] as? Int ?? 0
+            
+            // Only show windows that are likely to be application windows
+            if windowLayer == 0 {
+                print("- \(ownerName) (\(windowName))")
+            }
+        }
+    }
+    
+    func findWindsurfWindow() -> NSRunningApplication? {
+        let apps = NSWorkspace.shared.runningApplications
+        print("\nRunning applications:")
+        for app in apps {
+            if let name = app.localizedName {
+                print("- \(name)")
+            }
+        }
+        
+        // List all windows to help identify the correct application
+        listWindows()
+        
+        // Try different possible names
+        let possibleNames = ["Windsurf", "WindSurf", "windsurf", "Windsurf IDE", "WindsurfIDE"]
+        return apps.first { app in
+            guard let name = app.localizedName else { return false }
+            return possibleNames.contains(name)
+        }
+    }
+    
+    func focusWindsurfWindow() throws {
+        guard let windsurfApp = findWindsurfWindow() else {
+            print("Error: Windsurf application not found!")
+            throw WindPixError.applicationNotFound
+        }
+        
+        // Activate the application
+        if !windsurfApp.activate(options: .activateIgnoringOtherApps) {
+            print("Error: Failed to activate Windsurf window!")
+            throw WindPixError.applicationNotFound
         }
     }
     
@@ -48,7 +99,10 @@ class HotkeyManager {
     func automateSequence() {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
             do {
-                // Simulate Command + L to focus Windsurf chat
+                // First, focus the Windsurf window
+                try self.focusWindsurfWindow()
+                
+                // Then simulate Command + L to focus chat
                 try self.simulateKeyPress(keyCode: 0x25, flags: .maskCommand) // 'L' key
                 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -69,7 +123,7 @@ class HotkeyManager {
                     }
                 }
             } catch {
-                print("Error simulating chat focus: \(error)")
+                print("Error focusing Windsurf window: \(error)")
             }
         }
     }
@@ -101,10 +155,10 @@ class HotkeyManager {
             throw WindPixError.hotkeyRegistrationFailed
         }
         
-        // Register the hotkey (Command + Shift + 4)
+        // Register the hotkey (Command + Option + P)
         let registerStatus = RegisterEventHotKey(
-            UInt32(kVK_ANSI_4),
-            UInt32(cmdKey | shiftKey),
+            UInt32(kVK_ANSI_P),  // P key
+            UInt32(cmdKey | optionKey),  // Command + Option
             EventHotKeyID(signature: OSType(0x57504958), // "WPIX"
                          id: 1),
             GetApplicationEventTarget(),
@@ -123,8 +177,12 @@ print("Starting WindPix MVP...")
 
 let hotkeyManager = HotkeyManager()
 do {
+    // Print running applications and windows at startup
+    print("\nListing all running applications and windows to help identify Windsurf...")
+    _ = hotkeyManager.findWindsurfWindow()
+    
     try hotkeyManager.register()
-    print("Hotkey registered (Command + Shift + 4)")
+    print("\nHotkey registered (Command + Option + P)")
     print("Press Ctrl+C to exit")
     
     // Keep the program running

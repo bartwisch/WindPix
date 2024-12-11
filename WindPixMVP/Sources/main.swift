@@ -6,7 +6,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var hotkeyManager: HotkeyManager!
     private var windsurfCheckTimer: Timer?
-    private var useFocusChat: Bool = true  // Default to true for existing behavior
+    private var useFocusChat: Bool = false  // Default to false for existing behavior
+    private var autoClose: Bool = true     // Default to true for existing behavior
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Check if Windsurf is running
@@ -20,7 +21,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
         if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "camera", accessibilityDescription: "WindPix")
+            button.image = NSImage(systemSymbolName: "wind", accessibilityDescription: "WindPix")
         }
         
         // Create the menu
@@ -33,6 +34,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         focusChatItem.state = useFocusChat ? .on : .off
         menu.addItem(focusChatItem)
         
+        let autoCloseItem = NSMenuItem(title: "Auto-close with Windsurf", action: #selector(toggleAutoClose), keyEquivalent: "")
+        autoCloseItem.state = autoClose ? .on : .off
+        menu.addItem(autoCloseItem)
+        
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
         
@@ -40,8 +45,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         
         // Start periodic check for Windsurf
         windsurfCheckTimer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { _ in
-            if HotkeyManager.findWindsurfWindow() == nil {
-                print("Windsurf is no longer running. Quitting WindPix...")
+            if HotkeyManager.findWindsurfWindow() == nil && self.autoClose {
+                print("Windsurf is no longer running and auto-close is enabled. Quitting WindPix...")
                 NSApplication.shared.terminate(nil)
             }
         }
@@ -64,6 +69,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         useFocusChat = !useFocusChat
         sender.state = useFocusChat ? .on : .off
         hotkeyManager.setUseFocusChat(useFocusChat)
+    }
+    
+    @objc func toggleAutoClose(_ sender: NSMenuItem) {
+        autoClose = !autoClose
+        sender.state = autoClose ? .on : .off
     }
     
     func applicationWillTerminate(_ notification: Notification) {

@@ -99,6 +99,8 @@ class ScreenshotControlPanel: NSPanel {
     private let imageView: NSImageView
     private var retryCount: Int = 0
     private let maxRetries: Int = 5
+    private var updateTimer: Timer?
+    private var lastChangeCount: Int
     
     init(acceptAction: @escaping () -> Void, redoAction: @escaping () -> Void, cancelAction: @escaping () -> Void) {
         self.acceptAction = acceptAction
@@ -107,6 +109,7 @@ class ScreenshotControlPanel: NSPanel {
         
         self.imageView = NSImageView()
         imageView.imageScaling = .scaleProportionallyUpOrDown
+        self.lastChangeCount = NSPasteboard.general.changeCount
         
         super.init(contentRect: NSRect(x: 0, y: 0, width: 300, height: 250),
                   styleMask: [.titled, .closable, .nonactivatingPanel],
@@ -120,6 +123,7 @@ class ScreenshotControlPanel: NSPanel {
         self.backgroundColor = NSColor.windowBackgroundColor
         
         setupUI()
+        setupClipboardMonitoring()
         
         // Position window near the cursor
         if let screenFrame = NSScreen.main?.frame {
@@ -129,9 +133,36 @@ class ScreenshotControlPanel: NSPanel {
             setFrameOrigin(NSPoint(x: x, y: y))
         }
         
-        // Wait for clipboard content
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            self.updateWithClipboardContent()
+        makeKeyAndOrderFront(nil)
+    }
+    
+    deinit {
+        updateTimer?.invalidate()
+    }
+    
+    private func setupClipboardMonitoring() {
+        updateTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
+            self?.checkClipboardChanges()
+        }
+    }
+    
+    private func checkClipboardChanges() {
+        let currentCount = NSPasteboard.general.changeCount
+        if currentCount != lastChangeCount {
+            lastChangeCount = currentCount
+            updateWithClipboardContent()
+        }
+    }
+    
+    private func updateWithClipboardContent() {
+        if let clipboard = NSPasteboard.general.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage {
+            imageView.image = clipboard
+            retryCount = 0
+        } else if retryCount < maxRetries {
+            retryCount += 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.updateWithClipboardContent()
+            }
         }
     }
     
@@ -158,19 +189,6 @@ class ScreenshotControlPanel: NSPanel {
         
         contentView.addSubview(stackView)
         self.contentView = contentView
-    }
-    
-    private func updateWithClipboardContent() {
-        if let clipboard = NSPasteboard.general.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage {
-            imageView.image = clipboard
-            makeKeyAndOrderFront(nil)
-            retryCount = 0
-        } else if retryCount < maxRetries {
-            retryCount += 1
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
-                self?.updateWithClipboardContent()
-            }
-        }
     }
     
     @objc private func acceptPressed() {

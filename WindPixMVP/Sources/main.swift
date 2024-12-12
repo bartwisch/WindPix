@@ -96,28 +96,53 @@ class ScreenshotControlPanel: NSPanel {
     private var acceptAction: () -> Void
     private var redoAction: () -> Void
     private var cancelAction: () -> Void
+    private let imageView: NSImageView
+    private var retryCount: Int = 0
+    private let maxRetries: Int = 5
     
     init(acceptAction: @escaping () -> Void, redoAction: @escaping () -> Void, cancelAction: @escaping () -> Void) {
         self.acceptAction = acceptAction
         self.redoAction = redoAction
         self.cancelAction = cancelAction
         
-        super.init(contentRect: NSRect(x: 0, y: 0, width: 300, height: 60),
+        self.imageView = NSImageView()
+        imageView.imageScaling = .scaleProportionallyUpOrDown
+        
+        super.init(contentRect: NSRect(x: 0, y: 0, width: 300, height: 250),
                   styleMask: [.titled, .closable, .nonactivatingPanel],
                   backing: .buffered,
                   defer: false)
         
         self.level = .floating
-        self.title = "Screenshot Control"
+        self.title = "Screenshot Preview"
         self.isFloatingPanel = true
         self.becomesKeyOnlyIfNeeded = true
+        self.backgroundColor = NSColor.windowBackgroundColor
         
         setupUI()
+        
+        // Position window near the cursor
+        if let screenFrame = NSScreen.main?.frame {
+            let mouseLocation = NSEvent.mouseLocation
+            let x = min(mouseLocation.x, screenFrame.width - frame.width)
+            let y = min(mouseLocation.y - frame.height - 10, screenFrame.height - frame.height)
+            setFrameOrigin(NSPoint(x: x, y: y))
+        }
+        
+        // Wait for clipboard content
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            self.updateWithClipboardContent()
+        }
     }
     
     private func setupUI() {
-        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 60))
+        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 250))
         
+        // Setup image view
+        imageView.frame = NSRect(x: 10, y: 70, width: 280, height: 170)
+        contentView.addSubview(imageView)
+        
+        // Setup buttons
         let stackView = NSStackView(frame: NSRect(x: 10, y: 10, width: 280, height: 40))
         stackView.orientation = .horizontal
         stackView.distribution = .equalSpacing
@@ -133,12 +158,18 @@ class ScreenshotControlPanel: NSPanel {
         
         contentView.addSubview(stackView)
         self.contentView = contentView
-        
-        // Center the window on screen
-        if let screenFrame = NSScreen.main?.frame {
-            let x = (screenFrame.width - frame.width) / 2
-            let y = (screenFrame.height - frame.height) / 2
-            setFrameOrigin(NSPoint(x: x, y: y))
+    }
+    
+    private func updateWithClipboardContent() {
+        if let clipboard = NSPasteboard.general.readObjects(forClasses: [NSImage.self], options: nil)?.first as? NSImage {
+            imageView.image = clipboard
+            makeKeyAndOrderFront(nil)
+            retryCount = 0
+        } else if retryCount < maxRetries {
+            retryCount += 1
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { [weak self] in
+                self?.updateWithClipboardContent()
+            }
         }
     }
     
@@ -164,8 +195,8 @@ class HotkeyManager {
     private var keyMonitor: Any?
     private var mouseMonitor: Any?
     private var controlPanel: ScreenshotControlPanel?
-    private var useFocusChat: Bool = true  // Default to true for existing behavior
-    private var useAreaSelection: Bool = true  // Default to true for area selection
+    private var useFocusChat: Bool = true
+    private var useAreaSelection: Bool = true
     
     deinit {
         if let eventHandler = eventHandler {
@@ -205,14 +236,8 @@ class HotkeyManager {
     }
     
     static func findWindsurfWindow() -> NSRunningApplication? {
-        let apps = NSWorkspace.shared.runningApplications
-        print("Looking for Windsurf app...")
-        return apps.first { app in
-            guard let name = app.localizedName else { 
-                return false 
-            }
-            print("Checking app: \(name)")
-            // Look for exact match first
+        return NSWorkspace.shared.runningApplications.first { app in
+            guard let name = app.localizedName else { return false }
             return name == "Windsurf"
         }
     }

@@ -214,7 +214,16 @@ class HotkeyManager {
     private var mouseMonitor: Any?
     private var controlPanel: ScreenshotControlPanel?
     private var useFocusChat: Bool = true
-    private var useAreaSelection: Bool = true
+    @objc var useAreaSelection: Bool = true {
+        didSet {
+            if !useAreaSelection {
+                // Close preview window when area selection is disabled
+                controlPanel?.close()
+                controlPanel = nil
+            }
+            updateMenuItems()
+        }
+    }
     
     deinit {
         if let eventHandler = eventHandler {
@@ -308,6 +317,10 @@ class HotkeyManager {
             let keyCode = useAreaSelection ? CGKeyCode(kVK_ANSI_4) : CGKeyCode(kVK_ANSI_3)
             
             if !useAreaSelection {
+                // Close preview window if it exists
+                controlPanel?.close()
+                controlPanel = nil
+                
                 print("Taking full screenshot with Cmd+Shift+Control+3...")
                 // Take screenshot first
                 try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift, .maskControl])
@@ -448,6 +461,10 @@ class HotkeyManager {
         }
         print("✅ Hotkey registered successfully")
         print("🚀 WindPix is ready! Press Command + P to test...")
+    }
+    
+    private func updateMenuItems() {
+        // Update menu items
     }
 }
 

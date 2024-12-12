@@ -206,20 +206,14 @@ class HotkeyManager {
     
     static func findWindsurfWindow() -> NSRunningApplication? {
         let apps = NSWorkspace.shared.runningApplications
-        print("Running applications:")
-        for app in apps {
-            if let name = app.localizedName {
-                print("- \(name)")
-            }
-        }
+        print("Looking for Windsurf app...")
         return apps.first { app in
-            guard let name = app.localizedName?.lowercased() else { 
+            guard let name = app.localizedName else { 
                 return false 
             }
-            // Print each app name we're checking
             print("Checking app: \(name)")
-            // Check for various possible names including partial matches
-            return name.contains("wind") || name.contains("surf") || name.contains("windpix")
+            // Look for exact match first
+            return name == "Windsurf"
         }
     }
     
@@ -229,11 +223,15 @@ class HotkeyManager {
             throw WindPixError.applicationNotFound
         }
         
+        print("Found Windsurf app, attempting to activate...")
+        
         // Activate the application
-        if !windsurfApp.activate(options: .activateIgnoringOtherApps) {
+        if !windsurfApp.activate(options: [.activateIgnoringOtherApps]) {
             print("Error: Failed to activate Windsurf window!")
             throw WindPixError.applicationNotFound
         }
+        
+        print("Successfully activated Windsurf window")
     }
     
     func simulateKeyPress(keyCode: CGKeyCode, flags: CGEventFlags) throws {
@@ -269,14 +267,13 @@ class HotkeyManager {
             if !useAreaSelection {
                 // For full screenshot, focus window immediately and take screenshot
                 try focusWindsurfWindow()
-                try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift])
+                try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift, .maskControl])
                 
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    self?.getSelectedElementInfo()
-                }
+                // Paste the screenshot after a delay
+                pasteScreenshot()
             } else {
                 // For area selection, show control panel after screenshot
-                try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift])
+                try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift, .maskControl])
                 
                 // Wait a bit before showing the control panel
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
@@ -284,12 +281,10 @@ class HotkeyManager {
                     
                     self.controlPanel = ScreenshotControlPanel(
                         acceptAction: { [weak self] in
-                            // Accept: Focus Windsurf window
+                            // Accept: Focus Windsurf window and paste
                             do {
                                 try self?.focusWindsurfWindow()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                                    self?.getSelectedElementInfo()
-                                }
+                                self?.pasteScreenshot()
                             } catch {
                                 print("Error focusing window: \(error)")
                             }
@@ -312,39 +307,17 @@ class HotkeyManager {
         }
     }
     
-    func getSelectedElementInfo() {
-        guard let app = NSWorkspace.shared.frontmostApplication else {
-            print("No frontmost application")
-            return
-        }
-        
-        let pid = app.processIdentifier
-        let appRef = AXUIElementCreateApplication(pid)
-        
-        var focusedElement: AnyObject?
-        let result = AXUIElementCopyAttributeValue(appRef, kAXFocusedUIElementAttribute as CFString, &focusedElement)
-        
-        if result == .success, let element = focusedElement {
-            var description: CFTypeRef?
-            var title: CFTypeRef?
-            var role: CFTypeRef?
-            
-            AXUIElementCopyAttributeValue(element as! AXUIElement, kAXDescriptionAttribute as CFString, &description)
-            AXUIElementCopyAttributeValue(element as! AXUIElement, kAXTitleAttribute as CFString, &title)
-            AXUIElementCopyAttributeValue(element as! AXUIElement, kAXRoleAttribute as CFString, &role)
-            
-            print("Selected Element Info:")
-            if let desc = description as? String {
-                print("Description: \(desc)")
+    func pasteScreenshot() {
+        do {
+            // Wait a bit to ensure window is focused
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+                do {
+                    // Paste (Command + V)
+                    try self?.simulateKeyPress(keyCode: CGKeyCode(kVK_ANSI_V), flags: .maskCommand)
+                } catch {
+                    print("Error pasting screenshot: \(error)")
+                }
             }
-            if let titleStr = title as? String {
-                print("Title: \(titleStr)")
-            }
-            if let roleStr = role as? String {
-                print("Role: \(roleStr)")
-            }
-        } else {
-            print("Could not get focused element")
         }
     }
     

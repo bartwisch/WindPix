@@ -308,42 +308,47 @@ class HotkeyManager {
             let keyCode = useAreaSelection ? CGKeyCode(kVK_ANSI_4) : CGKeyCode(kVK_ANSI_3)
             
             if !useAreaSelection {
-                // For full screenshot, focus window immediately and take screenshot
-                try focusWindsurfWindow()
+                print("Taking full screenshot with Cmd+Shift+Control+3...")
+                // Take screenshot first
                 try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift, .maskControl])
                 
-                // Paste the screenshot after a delay
-                pasteScreenshot()
-            } else {
-                // For area selection, show control panel after screenshot
-                try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift, .maskControl])
-                
-                // Wait a bit before showing the control panel
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                    guard let self = self else { return }
-                    
-                    self.controlPanel = ScreenshotControlPanel(
-                        acceptAction: { [weak self] in
-                            // Accept: Focus Windsurf window and paste
-                            do {
-                                try self?.focusWindsurfWindow()
-                                self?.pasteScreenshot()
-                            } catch {
-                                print("Error focusing window: \(error)")
-                            }
-                        },
-                        redoAction: { [weak self] in
-                            // Redo: Start new area selection
-                            self?.automateSequence()
-                        },
-                        cancelAction: {
-                            // Cancel: Do nothing, panel is already closed
-                            print("Screenshot cancelled")
-                        }
-                    )
-                    
-                    self.controlPanel?.makeKeyAndOrderFront(nil)
+                // Wait for clipboard to update
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                    do {
+                        print("Focusing Windsurf window...")
+                        // Then focus window and paste
+                        try self?.focusWindsurfWindow()
+                        
+                        print("Attempting to paste screenshot...")
+                        self?.pasteScreenshot()
+                    } catch {
+                        print("Error focusing window: \(error)")
+                    }
                 }
+            } else {
+                // For area selection: Show control panel and wait for user action
+                try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift, .maskControl])
+                
+                // Create control panel after screenshot command
+                self.controlPanel = ScreenshotControlPanel(
+                    acceptAction: { [weak self] in
+                        // Accept: Focus Windsurf window and paste
+                        do {
+                            try self?.focusWindsurfWindow()
+                            self?.pasteScreenshot()
+                        } catch {
+                            print("Error focusing window: \(error)")
+                        }
+                    },
+                    redoAction: { [weak self] in
+                        // Redo: Start new area selection
+                        self?.automateSequence()
+                    },
+                    cancelAction: {
+                        // Cancel: Do nothing, panel is already closed
+                        print("Screenshot cancelled")
+                    }
+                )
             }
         } catch {
             print("Error in automation sequence: \(error)")

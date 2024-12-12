@@ -8,6 +8,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windsurfCheckTimer: Timer?
     private var useFocusChat: Bool = false  // Default to false for existing behavior
     private var autoClose: Bool = true     // Default to true for existing behavior
+    private var useAreaSelection: Bool = true  // Default to true for area selection
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Check if Windsurf is running
@@ -29,6 +30,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(NSMenuItem(title: "WindPix v\(VERSION)", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
         menu.addItem(NSMenuItem(title: "Take Screenshot (⌘P)", action: #selector(takeScreenshot), keyEquivalent: ""))
+        
+        let areaSelectionItem = NSMenuItem(title: "Use Area Selection", action: #selector(toggleAreaSelection), keyEquivalent: "")
+        areaSelectionItem.state = useAreaSelection ? .on : .off
+        menu.addItem(areaSelectionItem)
         
         let focusChatItem = NSMenuItem(title: "Focus Chat Before Paste", action: #selector(toggleFocusChat), keyEquivalent: "")
         focusChatItem.state = useFocusChat ? .on : .off
@@ -76,8 +81,80 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         sender.state = autoClose ? .on : .off
     }
     
+    @objc func toggleAreaSelection(_ sender: NSMenuItem) {
+        useAreaSelection = !useAreaSelection
+        sender.state = useAreaSelection ? .on : .off
+        hotkeyManager.setUseAreaSelection(useAreaSelection)
+    }
+    
     func applicationWillTerminate(_ notification: Notification) {
         windsurfCheckTimer?.invalidate()
+    }
+}
+
+class ScreenshotControlPanel: NSPanel {
+    private var acceptAction: () -> Void
+    private var redoAction: () -> Void
+    private var cancelAction: () -> Void
+    
+    init(acceptAction: @escaping () -> Void, redoAction: @escaping () -> Void, cancelAction: @escaping () -> Void) {
+        self.acceptAction = acceptAction
+        self.redoAction = redoAction
+        self.cancelAction = cancelAction
+        
+        super.init(contentRect: NSRect(x: 0, y: 0, width: 300, height: 60),
+                  styleMask: [.titled, .closable, .nonactivatingPanel],
+                  backing: .buffered,
+                  defer: false)
+        
+        self.level = .floating
+        self.title = "Screenshot Control"
+        self.isFloatingPanel = true
+        self.becomesKeyOnlyIfNeeded = true
+        
+        setupUI()
+    }
+    
+    private func setupUI() {
+        let contentView = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 60))
+        
+        let stackView = NSStackView(frame: NSRect(x: 10, y: 10, width: 280, height: 40))
+        stackView.orientation = .horizontal
+        stackView.distribution = .equalSpacing
+        stackView.spacing = 10
+        
+        let acceptButton = NSButton(title: "Accept", target: self, action: #selector(acceptPressed))
+        let redoButton = NSButton(title: "Redo", target: self, action: #selector(redoPressed))
+        let cancelButton = NSButton(title: "Cancel", target: self, action: #selector(cancelPressed))
+        
+        stackView.addArrangedSubview(acceptButton)
+        stackView.addArrangedSubview(redoButton)
+        stackView.addArrangedSubview(cancelButton)
+        
+        contentView.addSubview(stackView)
+        self.contentView = contentView
+        
+        // Center the window on screen
+        if let screenFrame = NSScreen.main?.frame {
+            let x = (screenFrame.width - frame.width) / 2
+            let y = (screenFrame.height - frame.height) / 2
+            setFrameOrigin(NSPoint(x: x, y: y))
+        }
+    }
+    
+    @objc private func acceptPressed() {
+        close()
+        acceptAction()
+    }
+    
+    @objc private func redoPressed() {
+        close()
+        redoAction()
+    }
+    
+    @objc private func cancelPressed() {
+        close()
+        cancelAction()
     }
 }
 
@@ -85,7 +162,10 @@ class HotkeyManager {
     private var eventHandler: EventHandlerRef?
     private var hotKeyRef: EventHotKeyRef?
     private var keyMonitor: Any?
+    private var mouseMonitor: Any?
+    private var controlPanel: ScreenshotControlPanel?
     private var useFocusChat: Bool = true  // Default to true for existing behavior
+    private var useAreaSelection: Bool = true  // Default to true for area selection
     
     deinit {
         if let eventHandler = eventHandler {
@@ -97,6 +177,25 @@ class HotkeyManager {
         if let monitor = keyMonitor {
             NSEvent.removeMonitor(monitor)
         }
+        removeMouseMonitor()
+    }
+    
+    private func removeMouseMonitor() {
+        if let monitor = mouseMonitor {
+            NSEvent.removeMonitor(monitor)
+            mouseMonitor = nil
+        }
+    }
+    
+    private func waitForMouseRelease(completion: @escaping () -> Void) {
+        removeMouseMonitor()
+        
+        mouseMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.leftMouseUp, .rightMouseUp]) { [weak self] _ in
+            self?.removeMouseMonitor()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                completion()
+            }
+        }
     }
     
     private func requestAccessibility() {
@@ -107,9 +206,20 @@ class HotkeyManager {
     
     static func findWindsurfWindow() -> NSRunningApplication? {
         let apps = NSWorkspace.shared.runningApplications
+        print("Running applications:")
+        for app in apps {
+            if let name = app.localizedName {
+                print("- \(name)")
+            }
+        }
         return apps.first { app in
-            guard let name = app.localizedName?.lowercased() else { return false }
-            return name == "windsurf"
+            guard let name = app.localizedName?.lowercased() else { 
+                return false 
+            }
+            // Print each app name we're checking
+            print("Checking app: \(name)")
+            // Check for various possible names including partial matches
+            return name.contains("wind") || name.contains("surf") || name.contains("windpix")
         }
     }
     
@@ -147,69 +257,94 @@ class HotkeyManager {
         useFocusChat = value
     }
     
+    func setUseAreaSelection(_ value: Bool) {
+        useAreaSelection = value
+    }
+    
     func automateSequence() {
         print("Starting automation sequence...")
         do {
-            print("Taking screenshot (Command + Shift + Control + 3)...")
-            // First simulate Command + Shift + Control + 3 to copy screenshot to clipboard
-            try simulateKeyPress(keyCode: CGKeyCode(kVK_ANSI_3), flags: [.maskCommand, .maskShift, .maskControl])
+            let keyCode = useAreaSelection ? CGKeyCode(kVK_ANSI_4) : CGKeyCode(kVK_ANSI_3)
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                do {
-                    print("Focusing Windsurf window...")
-                    // Then focus the Windsurf window
-                    try self.focusWindsurfWindow()
+            if !useAreaSelection {
+                // For full screenshot, focus window immediately and take screenshot
+                try focusWindsurfWindow()
+                try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift])
+                
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    self?.getSelectedElementInfo()
+                }
+            } else {
+                // For area selection, show control panel after screenshot
+                try simulateKeyPress(keyCode: keyCode, flags: [.maskCommand, .maskShift])
+                
+                // Wait a bit before showing the control panel
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                    guard let self = self else { return }
                     
-                    if self.useFocusChat {
-                        print("Focusing chat (Command + Shift + L)...")
-                        // Then simulate Command + Shift + L to focus chat
-                        try self.simulateKeyPress(keyCode: 0x25, flags: [.maskCommand, .maskShift]) // 'L' key
-                        
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                    self.controlPanel = ScreenshotControlPanel(
+                        acceptAction: { [weak self] in
+                            // Accept: Focus Windsurf window
                             do {
-                                print("Pasting screenshot (Command + V)...")
-                                // Simulate Command + V to paste
-                                try self.simulateKeyPress(keyCode: 0x09, flags: .maskCommand) // 'V' key
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    do {
-                                        print("Sending message (Return)...")
-                                        // Simulate Return to send
-                                        try self.simulateKeyPress(keyCode: 0x24, flags: []) // Return key
-                                    } catch {
-                                        print("Error sending message: \(error)")
-                                    }
+                                try self?.focusWindsurfWindow()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                                    self?.getSelectedElementInfo()
                                 }
                             } catch {
-                                print("Error pasting screenshot: \(error)")
+                                print("Error focusing window: \(error)")
                             }
+                        },
+                        redoAction: { [weak self] in
+                            // Redo: Start new area selection
+                            self?.automateSequence()
+                        },
+                        cancelAction: {
+                            // Cancel: Do nothing, panel is already closed
+                            print("Screenshot cancelled")
                         }
-                    } else {
-                        // If not using focus chat, directly paste the screenshot
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            do {
-                                print("Pasting screenshot (Command + V)...")
-                                try self.simulateKeyPress(keyCode: 0x09, flags: .maskCommand) // 'V' key
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    do {
-                                        print("Sending message (Return)...")
-                                        try self.simulateKeyPress(keyCode: 0x24, flags: []) // Return key
-                                    } catch {
-                                        print("Error sending message: \(error)")
-                                    }
-                                }
-                            } catch {
-                                print("Error pasting screenshot: \(error)")
-                            }
-                        }
-                    }
-                } catch {
-                    print("Error focusing Windsurf window: \(error)")
+                    )
+                    
+                    self.controlPanel?.makeKeyAndOrderFront(nil)
                 }
             }
         } catch {
-            print("Error taking screenshot: \(error)")
+            print("Error in automation sequence: \(error)")
+        }
+    }
+    
+    func getSelectedElementInfo() {
+        guard let app = NSWorkspace.shared.frontmostApplication else {
+            print("No frontmost application")
+            return
+        }
+        
+        let pid = app.processIdentifier
+        let appRef = AXUIElementCreateApplication(pid)
+        
+        var focusedElement: AnyObject?
+        let result = AXUIElementCopyAttributeValue(appRef, kAXFocusedUIElementAttribute as CFString, &focusedElement)
+        
+        if result == .success, let element = focusedElement {
+            var description: CFTypeRef?
+            var title: CFTypeRef?
+            var role: CFTypeRef?
+            
+            AXUIElementCopyAttributeValue(element as! AXUIElement, kAXDescriptionAttribute as CFString, &description)
+            AXUIElementCopyAttributeValue(element as! AXUIElement, kAXTitleAttribute as CFString, &title)
+            AXUIElementCopyAttributeValue(element as! AXUIElement, kAXRoleAttribute as CFString, &role)
+            
+            print("Selected Element Info:")
+            if let desc = description as? String {
+                print("Description: \(desc)")
+            }
+            if let titleStr = title as? String {
+                print("Title: \(titleStr)")
+            }
+            if let roleStr = role as? String {
+                print("Role: \(roleStr)")
+            }
+        } else {
+            print("Could not get focused element")
         }
     }
     

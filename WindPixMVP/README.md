@@ -1,22 +1,35 @@
 # WindPix MVP v0.1.0
 
-A command-line tool that automates the process of taking and sharing screenshots with Windsurf.
+A macOS utility that streamlines the process of taking and sharing screenshots within the Windsurf application.
 
 ## Features
 
-- Global hotkey (⌘⌥P) to trigger full screen screenshot
-- Automatic screenshot capture
-- Automatic pasting into Windsurf chat
-- Automatic message sending
+- Global hotkey (⌘P) to trigger screenshot
+- Area selection or full screen capture
+- Screenshot preview and control panel
+- Automatic Windsurf integration
+- System tray controls and settings
 
 ## Requirements
 
 - macOS 11.0 or later
-- Xcode 13.0 or later
-- Swift 5.9 or later
+- [Windsurf](https://www.codeium.com/windsurf) installed
+- Screen Recording permission
+- Accessibility permission
+- Input Monitoring permission
 
 ## Installation
 
+### Option 1: Download and Run (Recommended)
+1. Download the latest release from the [Releases page](https://github.com/bartwisch/windpix/releases)
+2. Extract `WindPix.zip`
+3. Move `WindPix.app` to your Applications folder
+4. Double-click to run
+5. If you see a security warning:
+   - Open System Preferences > Security & Privacy
+   - Click "Open Anyway" to allow the app to run
+
+### Option 2: Build from Source
 1. Clone the repository:
    ```bash
    git clone https://github.com/bartwisch/windpix.git
@@ -25,63 +38,50 @@ A command-line tool that automates the process of taking and sharing screenshots
 
 2. Build the project:
    ```bash
-   swift build
+   swift build -c release
    ```
 
-3. Run the app:
+3. Create the app bundle:
    ```bash
-   .build/debug/WindPixMVP
+   mkdir -p WindPix.app/Contents/MacOS
+   cp .build/release/WindPixMVP WindPix.app/Contents/MacOS/WindPix
    ```
 
-## Permissions Required
+## Setting Up Permissions
 
-The app requires the following permissions:
+WindPix requires several permissions to function properly:
 
-- Screen Recording (for taking screenshots)
-- Accessibility (for simulating keyboard events)
-- Input Monitoring (for global hotkey)
+1. **Screen Recording**
+   - System Preferences > Security & Privacy > Privacy > Screen Recording
+   - Add WindPix to the list
 
-### Setting up Permissions
+2. **Accessibility**
+   - System Preferences > Security & Privacy > Privacy > Accessibility
+   - Add WindPix to the list
 
-1. Open System Preferences > Security & Privacy > Privacy
-2. Enable permissions for:
-   - Screen Recording
-   - Accessibility
-   - Input Monitoring
-3. Restart the app after granting permissions
+3. **Input Monitoring**
+   - System Preferences > Security & Privacy > Privacy > Input Monitoring
+   - Add WindPix to the list
 
-## Development Status
+## Usage
 
-This is an MVP (Minimum Viable Product) version that implements the basic functionality of capturing and sharing screenshots. Future versions will include:
+1. Launch WindPix - you'll see a wind icon (🌬) in your system tray
+2. Click the icon to access settings:
+   - Use Area Selection: Toggle between area/full screen capture
+   - Focus Chat Before Paste: Automatically focus chat window
+   - Auto-close with Windsurf: Close WindPix when Windsurf closes
+3. Press ⌘P to take a screenshot
+4. Use the control panel to:
+   - Accept: Send to Windsurf
+   - Redo: Take another screenshot
+   - Cancel: Abort the operation
 
-- GUI/Status bar menu
-- Settings/Preferences
-- Custom delays
-- Error handling
-- Installer
-- Auto-updates
+## Support
 
-## Contributing
-
-We welcome contributions! Here's how you can help:
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-Please make sure to update tests as appropriate and follow the existing coding style.
-
-## Bug Reports & Feature Requests
-
-If you encounter any bugs or have ideas for new features, please [open an issue](https://github.com/bartwisch/windpix/issues).
+For issues, suggestions, or contributions:
+- Open an [issue](https://github.com/bartwisch/windpix/issues)
+- Submit a [pull request](https://github.com/bartwisch/windpix/pulls)
 
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Thanks to the Windsurf team for inspiration and support
-- All contributors who help improve this project

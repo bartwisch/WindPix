@@ -10,7 +10,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var autoClose: Bool = true     // Default to true for existing behavior
     private var useAreaSelection: Bool = true  // Default to true for area selection
     
+    private func launchWindsurf() {
+        let windsurfPath = "/Applications/Windsurf.app"
+        if FileManager.default.fileExists(atPath: windsurfPath) {
+            let windsurfURL = URL(fileURLWithPath: windsurfPath)
+            NSWorkspace.shared.openApplication(at: windsurfURL, 
+                configuration: NSWorkspace.OpenConfiguration()) { running, error in
+                if let error = error {
+                    print("Failed to launch Windsurf: \(error.localizedDescription)")
+                }
+            }
+        }
+    }
+    
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Launch Windsurf automatically
+        launchWindsurf()
+        
+        // Create the initial status item
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
+        
+        if let button = statusItem.button {
+            button.image = NSImage(systemSymbolName: "wind", accessibilityDescription: "WindPix")
+        }
+        
+        // Create initial menu with waiting status
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Waiting for Windsurf...", action: nil, keyEquivalent: ""))
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "Quit", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q"))
+        statusItem.menu = menu
+        
+        // Launch Windsurf if it's not running
+        if HotkeyManager.findWindsurfWindow() == nil {
+            if let windsurfURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: "com.codeium.windsurf") {
+                try? NSWorkspace.shared.launchApplication(at: windsurfURL, options: [], configuration: [:])
+            }
+        }
+        
         // Start checking for Windsurf
         windsurfCheckTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
             if HotkeyManager.findWindsurfWindow() != nil {
@@ -24,13 +61,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     private func initializeApp() {
-        // Create the status item
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        
-        if let button = statusItem.button {
-            button.image = NSImage(systemSymbolName: "wind", accessibilityDescription: "WindPix")
-        }
-        
         // Create the menu
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "WindPix v\(VERSION)", action: nil, keyEquivalent: ""))

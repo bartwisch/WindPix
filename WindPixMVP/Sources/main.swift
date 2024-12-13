@@ -35,6 +35,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let menu = NSMenu()
         menu.addItem(NSMenuItem(title: "WindPix v\(VERSION)", action: nil, keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
+        menu.addItem(NSMenuItem(title: "How To", action: #selector(showInstructions), keyEquivalent: "h"))
         menu.addItem(NSMenuItem(title: "Take Screenshot (⌘P)", action: #selector(takeScreenshot), keyEquivalent: ""))
         
         let areaSelectionItem = NSMenuItem(title: "Use Area Selection", action: #selector(toggleAreaSelection), keyEquivalent: "")
@@ -91,6 +92,137 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         useAreaSelection = !useAreaSelection
         sender.state = useAreaSelection ? .on : .off
         hotkeyManager.setUseAreaSelection(useAreaSelection)
+    }
+    
+    @objc func showInstructions() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 700, height: 600),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = "WindPix Instructions"
+        window.center()
+        window.backgroundColor = .windowBackgroundColor
+        
+        let containerView = NSView(frame: window.contentView!.bounds)
+        containerView.autoresizingMask = [.width, .height]
+        
+        // Create title label
+        let titleLabel = NSTextField(labelWithString: "WindPix Instructions")
+        titleLabel.font = .systemFont(ofSize: 24, weight: .bold)
+        titleLabel.textColor = .labelColor
+        titleLabel.frame = NSRect(x: 20, y: containerView.frame.height - 60, width: containerView.frame.width - 40, height: 30)
+        titleLabel.alignment = .center
+        titleLabel.autoresizingMask = [.width]
+        
+        // Create scroll view for content
+        let scrollView = NSScrollView(frame: NSRect(x: 20, 
+                                                   y: 100, 
+                                                   width: containerView.frame.width - 40, 
+                                                   height: containerView.frame.height - 180))
+        scrollView.hasVerticalScroller = true
+        scrollView.autoresizingMask = [.width, .height]
+        scrollView.borderType = .noBorder
+        
+        let contentView = NSTextView(frame: scrollView.bounds)
+        contentView.isEditable = false
+        contentView.autoresizingMask = [.width]
+        contentView.textContainerInset = NSSize(width: 20, height: 20)
+        contentView.backgroundColor = .clear
+        
+        if let instructionsPath = "/Users/christophwurzer/Development/windpix/instructions.md" as String?,
+           let instructions = try? String(contentsOfFile: instructionsPath, encoding: .utf8) {
+            let attributedString = NSMutableAttributedString()
+            
+            // Style the content
+            let paragraphs = instructions.components(separatedBy: "\n\n")
+            for (index, paragraph) in paragraphs.enumerated() {
+                if index > 0 {
+                    attributedString.append(NSAttributedString(string: "\n\n"))
+                }
+                
+                let paragraphStyle = NSMutableParagraphStyle()
+                paragraphStyle.lineSpacing = 8
+                
+                if paragraph.hasPrefix("example:") {
+                    // Style the example section header
+                    attributedString.append(NSAttributedString(
+                        string: "Example:\n",
+                        attributes: [
+                            .font: NSFont.boldSystemFont(ofSize: 16),
+                            .foregroundColor: NSColor.labelColor,
+                            .paragraphStyle: paragraphStyle
+                        ]
+                    ))
+                    // Add the example content
+                    let steps = paragraph.replacingOccurrences(of: "example:\n", with: "")
+                    attributedString.append(NSAttributedString(
+                        string: steps,
+                        attributes: [
+                            .font: NSFont.systemFont(ofSize: 14),
+                            .foregroundColor: NSColor.labelColor,
+                            .paragraphStyle: paragraphStyle
+                        ]
+                    ))
+                } else if paragraph.hasPrefix("Notes:") {
+                    // Style the notes section
+                    attributedString.append(NSAttributedString(
+                        string: "Notes:\n",
+                        attributes: [
+                            .font: NSFont.boldSystemFont(ofSize: 16),
+                            .foregroundColor: NSColor.labelColor,
+                            .paragraphStyle: paragraphStyle
+                        ]
+                    ))
+                    // Add the notes content
+                    let notes = paragraph.replacingOccurrences(of: "Notes:\n", with: "")
+                    attributedString.append(NSAttributedString(
+                        string: notes,
+                        attributes: [
+                            .font: NSFont.systemFont(ofSize: 14),
+                            .foregroundColor: NSColor.labelColor,
+                            .paragraphStyle: paragraphStyle
+                        ]
+                    ))
+                } else {
+                    // Style regular paragraphs
+                    attributedString.append(NSAttributedString(
+                        string: paragraph,
+                        attributes: [
+                            .font: NSFont.systemFont(ofSize: 14),
+                            .foregroundColor: NSColor.labelColor,
+                            .paragraphStyle: paragraphStyle
+                        ]
+                    ))
+                }
+            }
+            
+            contentView.textStorage?.setAttributedString(attributedString)
+        } else {
+            contentView.string = "Instructions could not be loaded."
+        }
+        
+        scrollView.documentView = contentView
+        
+        // Create footer with contact info
+        let footerLabel = NSTextField(labelWithString: "Created by Hugo (bartwisch666@gmail.com)")
+        footerLabel.font = .systemFont(ofSize: 12)
+        footerLabel.textColor = .secondaryLabelColor
+        footerLabel.frame = NSRect(x: 20, y: 20, width: containerView.frame.width - 40, height: 20)
+        footerLabel.alignment = .center
+        footerLabel.autoresizingMask = [.width]
+        
+        // Add all views to container
+        containerView.addSubview(titleLabel)
+        containerView.addSubview(scrollView)
+        containerView.addSubview(footerLabel)
+        
+        window.contentView = containerView
+        
+        let controller = NSWindowController(window: window)
+        controller.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
     }
     
     func applicationWillTerminate(_ notification: Notification) {

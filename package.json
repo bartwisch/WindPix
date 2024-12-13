@@ -1,0 +1,26 @@
+{
+  "name": "windpix",
+  "version": "1.0.0",
+  "description": "WindPix is a macOS utility designed to streamline screenshot sharing within the Windsurf application. It provides a seamless experience for capturing and sharing screenshots with just a few keystrokes.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --debug",
+    "build": "electron-builder",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "build": {
+    "appId": "com.windpix.app",
+    "mac": {
+      "category": "public.app-category.utilities"
+    }
+  },
+  "keywords": ["screenshot", "utility", "macos", "electron"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  }
+}

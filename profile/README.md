@@ -1,6 +1,6 @@
 # Hugo (bartwisch)
 
-Hi there! 👋 I'm Hugo, a developer focused on creating tools that enhance productivity and workflow automation.
+Hi there! 👋 I'm Hugo, a Windsurf-User with a little coding background. I am focused on creating tools that enhance productivity and workflow automation.
 
 ## Projects
 

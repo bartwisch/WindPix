@@ -15,21 +15,23 @@ A command-line tool that automates the process of taking and sharing screenshots
 - Xcode 13.0 or later
 - Swift 5.9 or later
 
-## Building
+## Installation
 
-To build the project, run:
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/bartwisch/windpix.git
+   cd windpix/WindPixMVP
+   ```
 
-```bash
-swift build
-```
+2. Build the project:
+   ```bash
+   swift build
+   ```
 
-## Running
-
-To run the built executable:
-
-```bash
-.build/debug/WindPixMVP
-```
+3. Run the app:
+   ```bash
+   .build/debug/WindPixMVP
+   ```
 
 ## Permissions Required
 
@@ -38,6 +40,15 @@ The app requires the following permissions:
 - Screen Recording (for taking screenshots)
 - Accessibility (for simulating keyboard events)
 - Input Monitoring (for global hotkey)
+
+### Setting up Permissions
+
+1. Open System Preferences > Security & Privacy > Privacy
+2. Enable permissions for:
+   - Screen Recording
+   - Accessibility
+   - Input Monitoring
+3. Restart the app after granting permissions
 
 ## Development Status
 
@@ -49,5 +60,28 @@ This is an MVP (Minimum Viable Product) version that implements the basic functi
 - Error handling
 - Installer
 - Auto-updates
-- Multiple monitor support
-- Custom screenshot area
+
+## Contributing
+
+We welcome contributions! Here's how you can help:
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+Please make sure to update tests as appropriate and follow the existing coding style.
+
+## Bug Reports & Feature Requests
+
+If you encounter any bugs or have ideas for new features, please [open an issue](https://github.com/bartwisch/windpix/issues).
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Acknowledgments
+
+- Thanks to the Windsurf team for inspiration and support
+- All contributors who help improve this project

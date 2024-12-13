@@ -1,1 +1,0 @@
-- always automatically focus on cascade chat window

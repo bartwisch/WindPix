@@ -11,13 +11,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var useAreaSelection: Bool = true  // Default to true for area selection
     
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Check if Windsurf is running
-        guard HotkeyManager.findWindsurfWindow() != nil else {
-            print("Windsurf is not running. Quitting WindPix...")
-            NSApplication.shared.terminate(nil)
-            return
+        // Start checking for Windsurf
+        windsurfCheckTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] timer in
+            if HotkeyManager.findWindsurfWindow() != nil {
+                // Windsurf is running, stop the timer and initialize the app
+                timer.invalidate()
+                self?.initializeApp()
+            } else {
+                print("Waiting for Windsurf to start...")
+            }
         }
-        
+    }
+    
+    private func initializeApp() {
         // Create the status item
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         

@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, desktopCapturer, clipboard } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, desktopCapturer, clipboard, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
@@ -7,6 +7,7 @@ const store = new Store();
 
 let mainWindow;
 let tray;
+let selectionWindow;
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -22,6 +23,41 @@ function createWindow() {
   mainWindow.loadFile('index.html');
 }
 
+function createSelectionWindow() {
+  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  
+  if (selectionWindow) {
+    selectionWindow.close();
+  }
+
+  selectionWindow = new BrowserWindow({
+    width: width,
+    height: height,
+    x: 0,
+    y: 0,
+    frame: false,
+    transparent: true,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false
+    },
+    hasShadow: false,
+    enableLargerThanScreen: true,
+    resizable: false
+  });
+
+  selectionWindow.setVisibleOnAllWorkspaces(true);
+  selectionWindow.setAlwaysOnTop(true, 'screen-saver');
+  selectionWindow.setBackgroundColor('#00000000');
+  
+  selectionWindow.loadFile('selection.html');
+
+  // Ensure window can be closed with Cmd+Q
+  globalShortcut.register('Command+Q', () => {
+    app.quit();
+  });
+}
+
 function createTray() {
   const iconPath = path.join(__dirname, 'assets', 'icon.png');
   if (!fs.existsSync(iconPath)) {
@@ -32,6 +68,7 @@ function createTray() {
   tray = new Tray(iconPath);
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Take Screenshot', click: takeScreenshot },
+    { label: 'Select Area', click: takeAreaScreenshot },
     { type: 'separator' },
     { label: 'Settings', click: () => mainWindow.show() },
     { type: 'separator' },
@@ -41,10 +78,71 @@ function createTray() {
   tray.setContextMenu(contextMenu);
 }
 
+async function takeAreaScreenshot() {
+  // First get the screen capture permission
+  const sources = await desktopCapturer.getSources({ 
+    types: ['screen'],
+    thumbnailSize: { 
+      width: screen.getPrimaryDisplay().workAreaSize.width,
+      height: screen.getPrimaryDisplay().workAreaSize.height 
+    }
+  });
+
+  if (sources.length > 0) {
+    createSelectionWindow();
+  }
+}
+
+async function captureArea(bounds) {
+  try {
+    console.log('Taking area screenshot...', bounds);
+    const sources = await desktopCapturer.getSources({ 
+      types: ['screen'],
+      thumbnailSize: { 
+        width: screen.getPrimaryDisplay().workAreaSize.width,
+        height: screen.getPrimaryDisplay().workAreaSize.height 
+      }
+    });
+    
+    const primaryDisplay = sources[0];
+    if (!primaryDisplay) {
+      throw new Error('No display found');
+    }
+
+    // Get the cropped image using Electron's NativeImage
+    const fullImage = primaryDisplay.thumbnail;
+    const croppedImage = fullImage.crop(bounds);
+    
+    // Save to file
+    const timestamp = new Date().getTime();
+    const imgPath = path.join(app.getPath('pictures'), `screenshot-${timestamp}.png`);
+    fs.writeFileSync(imgPath, croppedImage.toPNG());
+    console.log('Area screenshot saved:', imgPath);
+    
+    // Copy to clipboard
+    clipboard.writeImage(croppedImage);
+    console.log('Area screenshot copied to clipboard');
+    
+    mainWindow.webContents.send('screenshot-taken', imgPath);
+    mainWindow.show();
+  } catch (error) {
+    console.error('Area screenshot failed - Full error:', error);
+    mainWindow.webContents.send('screenshot-error', error.message);
+    mainWindow.show();
+  } finally {
+    if (selectionWindow) {
+      selectionWindow.close();
+    }
+  }
+}
+
 async function takeScreenshot() {
   try {
     console.log('Taking screenshot...');
-    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 } });
+    const sources = await desktopCapturer.getSources({ 
+      types: ['screen'], 
+      thumbnailSize: { width: 1920, height: 1080 } 
+    });
     const primaryDisplay = sources[0];
     
     if (!primaryDisplay) {
@@ -58,8 +156,7 @@ async function takeScreenshot() {
     console.log('Screenshot saved:', imgPath);
     
     // Copy to clipboard
-    const image = primaryDisplay.thumbnail;
-    clipboard.writeImage(image);
+    clipboard.writeImage(primaryDisplay.thumbnail);
     console.log('Screenshot copied to clipboard');
     
     mainWindow.webContents.send('screenshot-taken', imgPath);
@@ -79,6 +176,16 @@ function initialize() {
   ipcMain.on('hide-window', () => {
     if (mainWindow) {
       mainWindow.hide();
+    }
+  });
+
+  ipcMain.on('area-selected', (event, bounds) => {
+    captureArea(bounds);
+  });
+
+  ipcMain.on('cancel-selection', () => {
+    if (selectionWindow) {
+      selectionWindow.close();
     }
   });
   

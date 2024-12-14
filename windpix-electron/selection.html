@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Select Area</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: transparent !important;
+            overflow: hidden;
+            user-select: none;
+            cursor: crosshair;
+        }
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 1;
+        }
+        #selection {
+            position: fixed;
+            border: 2px solid #00ff00;
+            background: rgba(0, 255, 0, 0.1);
+            display: none;
+            z-index: 2;
+        }
+        #dimensions {
+            position: fixed;
+            background: #000000;
+            color: #ffffff;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 12px;
+            display: none;
+            z-index: 3;
+        }
+        #instructions {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 14px;
+            text-align: center;
+            z-index: 2;
+        }
+    </style>
+</head>
+<body>
+    <div id="overlay"></div>
+    <div id="selection"></div>
+    <div id="dimensions"></div>
+    <div id="instructions">
+        Click and drag to select an area<br>
+        Press Esc to cancel<br>
+        Press Cmd+Q to force quit
+    </div>
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        let isDrawing = false;
+        let startX, startY;
+        const selection = document.getElementById('selection');
+        const dimensions = document.getElementById('dimensions');
+        const instructions = document.getElementById('instructions');
+
+        document.addEventListener('mousedown', (e) => {
+            isDrawing = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            selection.style.display = 'block';
+            dimensions.style.display = 'block';
+            instructions.style.display = 'none';
+            updateSelection(e);
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (isDrawing) {
+                updateSelection(e);
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (isDrawing) {
+                isDrawing = false;
+                const bounds = selection.getBoundingClientRect();
+                if (bounds.width > 10 && bounds.height > 10) {
+                    ipcRenderer.send('area-selected', {
+                        x: Math.round(bounds.x),
+                        y: Math.round(bounds.y),
+                        width: Math.round(bounds.width),
+                        height: Math.round(bounds.height)
+                    });
+                } else {
+                    ipcRenderer.send('cancel-selection');
+                }
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                ipcRenderer.send('cancel-selection');
+            }
+        });
+
+        function updateSelection(e) {
+            const width = Math.abs(e.clientX - startX);
+            const height = Math.abs(e.clientY - startY);
+            const left = Math.min(e.clientX, startX);
+            const top = Math.min(e.clientY, startY);
+            
+            selection.style.left = left + 'px';
+            selection.style.top = top + 'px';
+            selection.style.width = width + 'px';
+            selection.style.height = height + 'px';
+            
+            dimensions.style.left = (left + 5) + 'px';
+            dimensions.style.top = (top - 25) + 'px';
+            dimensions.textContent = `${width} × ${height}`;
+        }
+    </script>
+</body>
+</html>

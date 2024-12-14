@@ -49,6 +49,11 @@
             text-align: center;
             z-index: 2;
         }
+        .capturing #overlay,
+        .capturing #selection,
+        .capturing #dimensions {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
@@ -90,11 +95,19 @@
                 isDrawing = false;
                 const bounds = selection.getBoundingClientRect();
                 if (bounds.width > 10 && bounds.height > 10) {
-                    ipcRenderer.send('area-selected', {
-                        x: Math.round(bounds.x),
-                        y: Math.round(bounds.y),
-                        width: Math.round(bounds.width),
-                        height: Math.round(bounds.height)
+                    // Hide selection UI before capturing
+                    document.body.classList.add('capturing');
+                    
+                    // Wait a frame to ensure UI is hidden
+                    requestAnimationFrame(() => {
+                        requestAnimationFrame(() => {
+                            ipcRenderer.send('area-selected', {
+                                x: Math.round(bounds.x),
+                                y: Math.round(bounds.y),
+                                width: Math.round(bounds.width),
+                                height: Math.round(bounds.height)
+                            });
+                        });
                     });
                 } else {
                     ipcRenderer.send('cancel-selection');

@@ -55,7 +55,6 @@
 <body>
     <div class="container">
         <h2>Screenshot Preview</h2>
-        <div id="error" style="color: red; margin: 10px 0; display: none;"></div>
         <img id="preview" class="preview">
         <div class="controls">
             <button class="accept" onclick="acceptScreenshot()">Accept</button>
@@ -68,14 +67,7 @@
         const { ipcRenderer } = require('electron');
 
         ipcRenderer.on('screenshot-taken', (event, imgPath) => {
-            document.getElementById('error').style.display = 'none';
             document.getElementById('preview').src = imgPath;
-        });
-
-        ipcRenderer.on('screenshot-error', (event, errorMessage) => {
-            const errorDiv = document.getElementById('error');
-            errorDiv.textContent = 'Screenshot failed: ' + errorMessage;
-            errorDiv.style.display = 'block';
         });
 
         function acceptScreenshot() {

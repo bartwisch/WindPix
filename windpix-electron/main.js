@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, desktopCapturer } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, desktopCapturer, clipboard } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
@@ -51,11 +51,17 @@ async function takeScreenshot() {
       throw new Error('No display found');
     }
 
+    // Save to file
     const timestamp = new Date().getTime();
     const imgPath = path.join(app.getPath('pictures'), `screenshot-${timestamp}.png`);
-    
     fs.writeFileSync(imgPath, primaryDisplay.thumbnail.toPNG());
     console.log('Screenshot saved:', imgPath);
+    
+    // Copy to clipboard
+    const image = primaryDisplay.thumbnail;
+    const buffer = image.toPNG();
+    clipboard.writeImage(image);
+    console.log('Screenshot copied to clipboard');
     
     mainWindow.webContents.send('screenshot-taken', imgPath);
     mainWindow.show();

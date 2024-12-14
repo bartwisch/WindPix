@@ -8,16 +8,20 @@ const store = new Store();
 let mainWindow;
 let tray;
 let selectionWindow;
+let isAreaSelectMode = true; // Default to area select mode
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 800,
-    height: 600,
+    width: 400,
+    height: 300,
     show: false,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false
-    }
+    },
+    resizable: false,
+    maximizable: false,
+    fullscreenable: false
   });
 
   mainWindow.loadFile('index.html');
@@ -26,8 +30,9 @@ function createWindow() {
 function createSelectionWindow() {
   const { width, height } = screen.getPrimaryDisplay().workAreaSize;
   
-  if (selectionWindow) {
+  if (selectionWindow && !selectionWindow.isDestroyed()) {
     selectionWindow.close();
+    selectionWindow = null;
   }
 
   selectionWindow = new BrowserWindow({
@@ -58,6 +63,44 @@ function createSelectionWindow() {
   });
 }
 
+function updateTrayMenu() {
+  const iconPath = path.join(__dirname, 'assets', 'icon.png');
+  if (!fs.existsSync(iconPath)) {
+    console.error('Tray icon not found:', iconPath);
+    return;
+  }
+  
+  const contextMenu = Menu.buildFromTemplate([
+    { 
+      label: 'Select Area',
+      type: 'checkbox',
+      checked: isAreaSelectMode,
+      click: () => {
+        isAreaSelectMode = !isAreaSelectMode;
+        updateTrayMenu();
+      }
+    },
+    { 
+      label: 'Take Screenshot',
+      click: () => {
+        if (isAreaSelectMode) {
+          takeAreaScreenshot();
+        } else {
+          takeScreenshot();
+        }
+      }
+    },
+    { type: 'separator' },
+    { label: 'Settings', click: () => mainWindow.show() },
+    { type: 'separator' },
+    { label: 'Quit', click: () => app.quit() }
+  ]);
+
+  if (tray) {
+    tray.setContextMenu(contextMenu);
+  }
+}
+
 function createTray() {
   const iconPath = path.join(__dirname, 'assets', 'icon.png');
   if (!fs.existsSync(iconPath)) {
@@ -66,16 +109,8 @@ function createTray() {
   }
   
   tray = new Tray(iconPath);
-  const contextMenu = Menu.buildFromTemplate([
-    { label: 'Take Screenshot', click: takeScreenshot },
-    { label: 'Select Area', click: takeAreaScreenshot },
-    { type: 'separator' },
-    { label: 'Settings', click: () => mainWindow.show() },
-    { type: 'separator' },
-    { label: 'Quit', click: () => app.quit() }
-  ]);
   tray.setToolTip('WindPix');
-  tray.setContextMenu(contextMenu);
+  updateTrayMenu();
 }
 
 async function takeAreaScreenshot() {
@@ -214,7 +249,14 @@ function initialize() {
     }
   });
   
-  globalShortcut.register('CommandOrControl+P', takeScreenshot);
+  // Register shortcut to take screenshot based on current mode
+  globalShortcut.register('CommandOrControl+P', () => {
+    if (isAreaSelectMode) {
+      takeAreaScreenshot();
+    } else {
+      takeScreenshot();
+    }
+  });
 }
 
 // Wait for app to be ready

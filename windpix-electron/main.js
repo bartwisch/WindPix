@@ -79,17 +79,32 @@ function createTray() {
 }
 
 async function takeAreaScreenshot() {
-  // First get the screen capture permission
-  const sources = await desktopCapturer.getSources({ 
-    types: ['screen'],
-    thumbnailSize: { 
-      width: screen.getPrimaryDisplay().workAreaSize.width,
-      height: screen.getPrimaryDisplay().workAreaSize.height 
-    }
-  });
+  try {
+    // First get the screen capture permission
+    const sources = await desktopCapturer.getSources({ 
+      types: ['screen'],
+      thumbnailSize: { 
+        width: screen.getPrimaryDisplay().workAreaSize.width,
+        height: screen.getPrimaryDisplay().workAreaSize.height 
+      }
+    });
 
-  if (sources.length > 0) {
-    createSelectionWindow();
+    if (sources.length > 0) {
+      // Clean up existing window if it exists
+      if (selectionWindow && !selectionWindow.isDestroyed()) {
+        selectionWindow.close();
+        selectionWindow = null;
+      }
+      
+      // Create new window
+      createSelectionWindow();
+    }
+  } catch (error) {
+    console.error('Failed to start area screenshot:', error);
+    if (mainWindow) {
+      mainWindow.webContents.send('screenshot-error', error.message);
+      mainWindow.show();
+    }
   }
 }
 
@@ -123,15 +138,20 @@ async function captureArea(bounds) {
     clipboard.writeImage(croppedImage);
     console.log('Area screenshot copied to clipboard');
     
-    mainWindow.webContents.send('screenshot-taken', imgPath);
-    mainWindow.show();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('screenshot-taken', imgPath);
+      mainWindow.show();
+    }
   } catch (error) {
     console.error('Area screenshot failed - Full error:', error);
-    mainWindow.webContents.send('screenshot-error', error.message);
-    mainWindow.show();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('screenshot-error', error.message);
+      mainWindow.show();
+    }
   } finally {
-    if (selectionWindow) {
+    if (selectionWindow && !selectionWindow.isDestroyed()) {
       selectionWindow.close();
+      selectionWindow = null;
     }
   }
 }
@@ -159,12 +179,16 @@ async function takeScreenshot() {
     clipboard.writeImage(primaryDisplay.thumbnail);
     console.log('Screenshot copied to clipboard');
     
-    mainWindow.webContents.send('screenshot-taken', imgPath);
-    mainWindow.show();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('screenshot-taken', imgPath);
+      mainWindow.show();
+    }
   } catch (error) {
     console.error('Screenshot failed - Full error:', error);
-    mainWindow.webContents.send('screenshot-error', error.message);
-    mainWindow.show();
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.webContents.send('screenshot-error', error.message);
+      mainWindow.show();
+    }
   }
 }
 
@@ -174,7 +198,7 @@ function initialize() {
   
   // Set up IPC handlers after window is created
   ipcMain.on('hide-window', () => {
-    if (mainWindow) {
+    if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.hide();
     }
   });
@@ -184,8 +208,9 @@ function initialize() {
   });
 
   ipcMain.on('cancel-selection', () => {
-    if (selectionWindow) {
+    if (selectionWindow && !selectionWindow.isDestroyed()) {
       selectionWindow.close();
+      selectionWindow = null;
     }
   });
   

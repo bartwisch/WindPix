@@ -238,6 +238,17 @@ function initialize() {
     }
   });
 
+  ipcMain.on('redo-screenshot', () => {
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide();
+    }
+    if (isAreaSelectMode) {
+      takeAreaScreenshot();
+    } else {
+      takeScreenshot();
+    }
+  });
+
   ipcMain.on('area-selected', (event, bounds) => {
     captureArea(bounds);
   });

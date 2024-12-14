@@ -96,13 +96,12 @@
         });
 
         function acceptScreenshot() {
-            // TODO: Implement save functionality
             ipcRenderer.send('hide-window');
         }
 
         function redoScreenshot() {
-            // TODO: Implement redo functionality
             document.getElementById('preview').src = '';
+            ipcRenderer.send('redo-screenshot');
         }
 
         function cancelScreenshot() {

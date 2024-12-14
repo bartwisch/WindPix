@@ -262,6 +262,12 @@ function initialize() {
   
   // Register shortcut to take screenshot based on current mode
   globalShortcut.register('CommandOrControl+P', () => {
+    // Hide the preview window if it's open
+    if (mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.hide();
+    }
+    
+    // Take new screenshot based on mode
     if (isAreaSelectMode) {
       takeAreaScreenshot();
     } else {

@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WindPix</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .preview {
+            width: 100%;
+            max-height: 70vh;
+            object-fit: contain;
+            margin: 20px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.2s;
+        }
+        .accept {
+            background: #4CAF50;
+            color: white;
+        }
+        .redo {
+            background: #2196F3;
+            color: white;
+        }
+        .cancel {
+            background: #f44336;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Screenshot Preview</h2>
+        <img id="preview" class="preview">
+        <div class="controls">
+            <button class="accept" onclick="acceptScreenshot()">Accept</button>
+            <button class="redo" onclick="redoScreenshot()">Redo</button>
+            <button class="cancel" onclick="cancelScreenshot()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+
+        ipcRenderer.on('screenshot-taken', (event, imgPath) => {
+            document.getElementById('preview').src = imgPath;
+        });
+
+        function acceptScreenshot() {
+            // TODO: Implement save functionality
+            ipcRenderer.send('hide-window');
+        }
+
+        function redoScreenshot() {
+            // TODO: Implement redo functionality
+            document.getElementById('preview').src = '';
+        }
+
+        function cancelScreenshot() {
+            document.getElementById('preview').src = '';
+            ipcRenderer.send('hide-window');
+        }
+    </script>
+</body>
+</html>

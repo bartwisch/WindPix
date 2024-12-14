@@ -10,6 +10,25 @@ build/
 release/
 out/
 
+# Electron specific files
+node_modules/
+dist/
+build/
+*.log
+*.tgz
+.env
+.DS_Store
+*.iml
+coverage/
+*.sublime-workspace
+*.sublime-project
+electron-builder/
+electron-builder.yaml
+main.prod.js
+main.dev.js
+preload.prod.js
+preload.dev.js
+
 # IDE - VSCode
 .vscode/*
 !.vscode/settings.json
@@ -18,14 +37,11 @@ out/
 !.vscode/extensions.json
 
 # System Files
-.DS_Store
 Thumbs.db
 
 # Environment variables
-.env
 .env.local
 .env.*.local
 
 # Electron specific
-*.log
 .idea/

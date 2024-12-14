@@ -16,7 +16,12 @@
       "category": "public.app-category.utilities"
     }
   },
-  "keywords": ["screenshot", "utility", "macos", "electron"],
+  "keywords": [
+    "screenshot",
+    "utility",
+    "macos",
+    "electron"
+  ],
   "author": "",
   "license": "ISC",
   "devDependencies": {

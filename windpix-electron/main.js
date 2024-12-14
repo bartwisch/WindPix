@@ -1,6 +1,6 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, desktopCapturer } = require('electron');
 const path = require('path');
-const screenshot = require('screenshot-desktop');
+const fs = require('fs');
 const Store = require('electron-store');
 
 const store = new Store();
@@ -23,7 +23,13 @@ function createWindow() {
 }
 
 function createTray() {
-  tray = new Tray(path.join(__dirname, 'assets', 'icon.png'));
+  const iconPath = path.join(__dirname, 'assets', 'icon.png');
+  if (!fs.existsSync(iconPath)) {
+    console.error('Tray icon not found:', iconPath);
+    return;
+  }
+  
+  tray = new Tray(iconPath);
   const contextMenu = Menu.buildFromTemplate([
     { label: 'Take Screenshot', click: takeScreenshot },
     { type: 'separator' },
@@ -37,31 +43,49 @@ function createTray() {
 
 async function takeScreenshot() {
   try {
-    const imgPath = await screenshot();
+    console.log('Taking screenshot...');
+    const sources = await desktopCapturer.getSources({ types: ['screen'], thumbnailSize: { width: 1920, height: 1080 } });
+    const primaryDisplay = sources[0];
+    
+    if (!primaryDisplay) {
+      throw new Error('No display found');
+    }
+
+    const timestamp = new Date().getTime();
+    const imgPath = path.join(app.getPath('pictures'), `screenshot-${timestamp}.png`);
+    
+    fs.writeFileSync(imgPath, primaryDisplay.thumbnail.toPNG());
+    console.log('Screenshot saved:', imgPath);
+    
     mainWindow.webContents.send('screenshot-taken', imgPath);
     mainWindow.show();
   } catch (error) {
-    console.error('Screenshot failed:', error);
+    console.error('Screenshot failed - Full error:', error);
+    mainWindow.webContents.send('screenshot-error', error.message);
+    mainWindow.show();
   }
 }
 
-app.whenReady().then(() => {
+function initialize() {
   createWindow();
   createTray();
-
-  // Register global shortcut (Command+P on Mac, Ctrl+P on Windows/Linux)
   globalShortcut.register('CommandOrControl+P', takeScreenshot);
+}
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-});
+// Wait for app to be ready
+app.on('ready', initialize);
 
+// Quit when all windows are closed
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit();
+  }
+});
+
+// On macOS, re-create window when dock icon is clicked
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
   }
 });
 

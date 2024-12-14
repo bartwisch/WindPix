@@ -70,9 +70,15 @@
         
         let isDrawing = false;
         let startX, startY;
+        let scaleFactor = 1; // Default scale factor
         const selection = document.getElementById('selection');
         const dimensions = document.getElementById('dimensions');
         const instructions = document.getElementById('instructions');
+
+        // Receive scale factor from main process
+        ipcRenderer.on('init-scale-factor', (event, factor) => {
+            scaleFactor = factor;
+        });
 
         document.addEventListener('mousedown', (e) => {
             isDrawing = true;
@@ -101,12 +107,14 @@
                     // Wait a frame to ensure UI is hidden
                     requestAnimationFrame(() => {
                         requestAnimationFrame(() => {
-                            ipcRenderer.send('area-selected', {
-                                x: Math.round(bounds.x),
-                                y: Math.round(bounds.y),
-                                width: Math.round(bounds.width),
-                                height: Math.round(bounds.height)
-                            });
+                            // Scale the bounds exactly as shown in retina.md
+                            const scaledBounds = {
+                                x: Math.round(bounds.x * scaleFactor),
+                                y: Math.round(bounds.y * scaleFactor),
+                                width: Math.round(bounds.width * scaleFactor),
+                                height: Math.round(bounds.height * scaleFactor)
+                            };
+                            ipcRenderer.send('area-selected', scaledBounds);
                         });
                     });
                 } else {
@@ -132,9 +140,12 @@
             selection.style.width = width + 'px';
             selection.style.height = height + 'px';
             
+            // Show dimensions in device pixels
+            const deviceWidth = Math.round(width * scaleFactor);
+            const deviceHeight = Math.round(height * scaleFactor);
             dimensions.style.left = (left + 5) + 'px';
             dimensions.style.top = (top - 25) + 'px';
-            dimensions.textContent = `${width} × ${height}`;
+            dimensions.textContent = `${Math.round(width)} × ${Math.round(height)} (${deviceWidth} × ${deviceHeight})`;
         }
     </script>
 </body>

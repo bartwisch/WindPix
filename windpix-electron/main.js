@@ -28,7 +28,8 @@ function createWindow() {
 }
 
 function createSelectionWindow() {
-  const { width, height } = screen.getPrimaryDisplay().workAreaSize;
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.size; // Using size instead of workAreaSize
   
   if (selectionWindow && !selectionWindow.isDestroyed()) {
     selectionWindow.close();
@@ -56,6 +57,11 @@ function createSelectionWindow() {
   selectionWindow.setBackgroundColor('#00000000');
   
   selectionWindow.loadFile('selection.html');
+
+  // Pass the scale factor to the renderer
+  selectionWindow.webContents.on('did-finish-load', () => {
+    selectionWindow.webContents.send('init-scale-factor', primaryDisplay.scaleFactor);
+  });
 
   // Ensure window can be closed with Cmd+Q
   globalShortcut.register('Command+Q', () => {
@@ -115,12 +121,13 @@ function createTray() {
 
 async function takeAreaScreenshot() {
   try {
+    const primaryDisplay = screen.getPrimaryDisplay();
     // First get the screen capture permission
     const sources = await desktopCapturer.getSources({ 
       types: ['screen'],
       thumbnailSize: { 
-        width: screen.getPrimaryDisplay().workAreaSize.width,
-        height: screen.getPrimaryDisplay().workAreaSize.height 
+        width: primaryDisplay.size.width * primaryDisplay.scaleFactor,
+        height: primaryDisplay.size.height * primaryDisplay.scaleFactor
       }
     });
 
@@ -146,21 +153,22 @@ async function takeAreaScreenshot() {
 async function captureArea(bounds) {
   try {
     console.log('Taking area screenshot...', bounds);
+    const primaryDisplay = screen.getPrimaryDisplay();
     const sources = await desktopCapturer.getSources({ 
       types: ['screen'],
       thumbnailSize: { 
-        width: screen.getPrimaryDisplay().workAreaSize.width,
-        height: screen.getPrimaryDisplay().workAreaSize.height 
+        width: primaryDisplay.size.width * primaryDisplay.scaleFactor,
+        height: primaryDisplay.size.height * primaryDisplay.scaleFactor
       }
     });
     
-    const primaryDisplay = sources[0];
-    if (!primaryDisplay) {
+    const primarySource = sources[0];
+    if (!primarySource) {
       throw new Error('No display found');
     }
 
     // Get the cropped image using Electron's NativeImage
-    const fullImage = primaryDisplay.thumbnail;
+    const fullImage = primarySource.thumbnail;
     const croppedImage = fullImage.crop(bounds);
     
     // Save to file
@@ -194,24 +202,28 @@ async function captureArea(bounds) {
 async function takeScreenshot() {
   try {
     console.log('Taking screenshot...');
+    const primaryDisplay = screen.getPrimaryDisplay();
     const sources = await desktopCapturer.getSources({ 
       types: ['screen'], 
-      thumbnailSize: { width: 1920, height: 1080 } 
+      thumbnailSize: { 
+        width: primaryDisplay.size.width * primaryDisplay.scaleFactor,
+        height: primaryDisplay.size.height * primaryDisplay.scaleFactor
+      }
     });
-    const primaryDisplay = sources[0];
+    const primarySource = sources[0];
     
-    if (!primaryDisplay) {
+    if (!primarySource) {
       throw new Error('No display found');
     }
 
     // Save to file
     const timestamp = new Date().getTime();
     const imgPath = path.join(app.getPath('pictures'), `screenshot-${timestamp}.png`);
-    fs.writeFileSync(imgPath, primaryDisplay.thumbnail.toPNG());
+    fs.writeFileSync(imgPath, primarySource.thumbnail.toPNG());
     console.log('Screenshot saved:', imgPath);
     
     // Copy to clipboard
-    clipboard.writeImage(primaryDisplay.thumbnail);
+    clipboard.writeImage(primarySource.thumbnail);
     console.log('Screenshot copied to clipboard');
     
     if (mainWindow && !mainWindow.isDestroyed()) {

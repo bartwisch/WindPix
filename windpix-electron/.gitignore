@@ -3,6 +3,7 @@ node_modules/
 npm-debug.log
 yarn-debug.log
 yarn-error.log
+package-lock.json
 
 # Production build
 dist/
@@ -11,9 +12,6 @@ release/
 out/
 
 # Electron specific files
-node_modules/
-dist/
-build/
 *.log
 *.tgz
 .env
@@ -38,10 +36,29 @@ preload.dev.js
 
 # System Files
 Thumbs.db
+.DS_Store
 
 # Environment variables
 .env.local
 .env.*.local
+.env
 
-# Electron specific
+# IDE
 .idea/
+.vs/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

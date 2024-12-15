@@ -1,4 +1,4 @@
-const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, desktopCapturer, clipboard, screen } = require('electron');
+const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, desktopCapturer, clipboard, screen, systemPreferences, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
@@ -119,11 +119,44 @@ function createTray() {
   updateTrayMenu();
 }
 
+function checkScreenCapturePermission() {
+  if (process.platform === 'darwin') {
+    const hasPermission = systemPreferences.getMediaAccessStatus('screen') === 'granted';
+    if (!hasPermission) {
+						const dialogOptions = {
+        type: 'info',
+        title: 'Permission Required',
+        message: 'WindPix needs Screen and System Audio Recording permission to function properly.',
+        detail: 'Please enable Screen and System Audio Recording for Windsurf in System Settings > Privacy & Security.',
+								buttons: ['OK'],
+        defaultId: 0
+      };
+
+      if (process.platform === 'darwin') {
+        dialogOptions.buttons = ['Open System Settings', 'Cancel'];
+        dialogOptions.defaultId = 0;
+        dialogOptions.cancelId = 1;
+      }
+
+      dialog.showMessageBox(dialogOptions).then(({ response }) => {
+        if (process.platform === 'darwin' && response === 0) {
+          shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture');
+        }
+      });
+      return false;
+    }
+  }
+  return true;
+}
+
 async function takeAreaScreenshot() {
   try {
+    if (!checkScreenCapturePermission()) {
+      return;
+    }
+
     const primaryDisplay = screen.getPrimaryDisplay();
-    // First get the screen capture permission
-    const sources = await desktopCapturer.getSources({ 
+    const sources = await desktopCapturer.getSources({
       types: ['screen'],
       thumbnailSize: { 
         width: primaryDisplay.size.width * primaryDisplay.scaleFactor,
@@ -201,9 +234,13 @@ async function captureArea(bounds) {
 
 async function takeScreenshot() {
   try {
+    if (!checkScreenCapturePermission()) {
+      return;
+    }
+
     console.log('Taking screenshot...');
     const primaryDisplay = screen.getPrimaryDisplay();
-    const sources = await desktopCapturer.getSources({ 
+    const sources = await desktopCapturer.getSources({
       types: ['screen'], 
       thumbnailSize: { 
         width: primaryDisplay.size.width * primaryDisplay.scaleFactor,
@@ -240,6 +277,7 @@ async function takeScreenshot() {
 }
 
 function initialize() {
+  checkScreenCapturePermission();
   createWindow();
   createTray();
   

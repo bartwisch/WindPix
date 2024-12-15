@@ -10,6 +10,10 @@ Yes, WindPix is completely free and open source.
 
 ## Installation
 
+### Needed Permissions
+MacOS: Sytem Settings / Privacy & Security / Screen and System Audio Recording
+
+
 ### Why does WindPix need screen recording permission?
 Screen recording permission is required to capture screenshots of your screen. This is a macOS security requirement for any application that needs to capture screen content.
 

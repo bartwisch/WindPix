@@ -11,7 +11,7 @@ Yes, WindPix is completely free and open source.
 ## Installation
 
 ### Needed Permissions
-MacOS: Sytem Settings / Privacy & Security / Screen and System Audio Recording
+MacOS: Enable Sytem Settings / Privacy & Security / Screen and System Audio Recording for Windsurf
 
 
 ### Why does WindPix need screen recording permission?

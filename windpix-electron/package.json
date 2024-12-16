@@ -12,7 +12,7 @@
   "license": "ISC",
   "devDependencies": {
     "electron": "33.3.0",
-    "electron-builder": "^24.9.1"
+    "electron-builder": "^24.13.3"
   },
   "dependencies": {
     "electron-store": "^8.1.0",

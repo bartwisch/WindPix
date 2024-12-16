@@ -2,6 +2,13 @@
   "dependencies": {
     "glob": "^9.3.5",
     "lru-cache": "^11.0.2",
+    "lru-cache": "^11.0.2", 
     "rimraf": "^4.4.1"
+  }
+}
+
+  },
+  "scripts": {
+    "install": "npm install"
   }
 }

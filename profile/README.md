@@ -5,9 +5,9 @@ Hi there! 👋 I'm Hugo, a Windsurf user with a little coding background. I am f
 ## Projects
 
 ### [WindPix](https://github.com/bartwisch/windpix)
-A multi-platform utility that streamlines screenshot sharing in Windsurf. Built with Electron and Node.js, it features:
+A multi-platform utility that streamlines screenshot sharing to Windsurf. Built with Electron and Node.js, it features:
 - 📸 Seamless screenshot capture
-- 🔄 Automatic Windsurf integration
+- 🔄 Automatic focus on Windsurf after taking a screenshot
 - ⚡️ Quick keyboard shortcuts (⌘P for macOS, Ctrl+P for Windows/Linux)
 - 🎨 Clean, native UI
 

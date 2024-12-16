@@ -1,0 +1,64 @@
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log
+package-lock.json
+
+# Production build
+dist/
+build/
+release/
+out/
+
+# Electron specific files
+*.log
+*.tgz
+.env
+.DS_Store
+*.iml
+coverage/
+*.sublime-workspace
+*.sublime-project
+electron-builder/
+electron-builder.yaml
+main.prod.js
+main.dev.js
+preload.prod.js
+preload.dev.js
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# System Files
+Thumbs.db
+.DS_Store
+
+# Environment variables
+.env.local
+.env.*.local
+.env
+
+# IDE
+.idea/
+.vs/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

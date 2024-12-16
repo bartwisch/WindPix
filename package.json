@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "glob": "^11.0.0",
+    "lru-cache": "^11.0.2",
+    "rimraf": "^6.0.1"
+  },
+  "scripts": {
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "name": "windpix-electron",
+  "name": "WindPix",
   "version": "1.0.0",
   "description": "Cross-platform screenshot tool for Windsurf",
   "main": "main.js",
@@ -20,6 +20,7 @@
   },
   "build": {
     "appId": "com.windpix.app",
+    "icon": "512.png",
     "mac": {
       "category": "public.app-category.productivity"
     },

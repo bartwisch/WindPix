@@ -2,6 +2,7 @@ const { app, BrowserWindow, globalShortcut, ipcMain, Tray, Menu, desktopCapturer
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
+const { exec } = require('child_process');
 
 const store = new Store();
 
@@ -150,6 +151,17 @@ function checkScreenCapturePermission() {
   return true;
 }
 
+function activateWindsurfApp() {
+  if (process.platform === 'darwin') {
+    exec('osascript -e \'tell application "Windsurf" to activate\'', (error, stdout, stderr) => {
+      if (error) {
+        console.error(`Error activating Windsurf: ${error}`);
+        return;
+      }
+    });
+  }
+}
+
 async function takeAreaScreenshot() {
   try {
     if (!checkScreenCapturePermission()) {
@@ -220,9 +232,7 @@ async function captureArea(bounds) {
     }
 
     // Focus Windsurf app
-    if (process.platform === 'darwin') {
-      shell.executeCommand('osascript -e \'tell application "Windsurf" to activate\'');
-    }
+    activateWindsurfApp();
 
     // Delete temporary file after a short delay to ensure preview is shown
     setTimeout(() => {
@@ -282,9 +292,7 @@ async function takeScreenshot() {
     }
 
     // Focus Windsurf app
-    if (process.platform === 'darwin') {
-      shell.executeCommand('osascript -e \'tell application "Windsurf" to activate\'');
-    }
+    activateWindsurfApp();
 
     // Delete temporary file after a short delay to ensure preview is shown
     setTimeout(() => {

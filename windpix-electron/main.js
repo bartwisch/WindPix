@@ -21,7 +21,8 @@ function createWindow() {
     },
     resizable: false,
     maximizable: false,
-    fullscreenable: false
+    fullscreenable: false,
+    icon: path.join(__dirname, 'assets', 'icon-window.png')
   });
 
   mainWindow.loadFile('index.html');
@@ -70,9 +71,9 @@ function createSelectionWindow() {
 }
 
 function updateTrayMenu() {
-  const iconPath = path.join(__dirname, 'assets', 'icon.png');
+  const iconPath = path.join(__dirname, 'assets', 'icon-menu.png');
   if (!fs.existsSync(iconPath)) {
-    console.error('Tray icon not found:', iconPath);
+    console.error('Tray menu icon not found:', iconPath);
     return;
   }
   
@@ -108,7 +109,7 @@ function updateTrayMenu() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, 'assets', 'icon.png');
+  const iconPath = path.join(__dirname, 'assets', 'icon-tray.png');
   if (!fs.existsSync(iconPath)) {
     console.error('Tray icon not found:', iconPath);
     return;
@@ -277,6 +278,14 @@ async function takeScreenshot() {
 }
 
 function initialize() {
+  // Set dock icon for macOS
+  if (process.platform === 'darwin') {
+    const iconPath = path.join(__dirname, 'assets', 'icon-dock.png');
+    if (fs.existsSync(iconPath)) {
+      app.dock.setIcon(iconPath);
+    }
+  }
+
   checkScreenCapturePermission();
   createWindow();
   createTray();

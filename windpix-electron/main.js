@@ -354,7 +354,9 @@ function initialize() {
   });
   
   // Register shortcut to take screenshot based on current mode
-  globalShortcut.register('CommandOrControl+P', () => {
+  const registered = globalShortcut.register('CommandOrControl+P', () => {
+    console.log('Shortcut triggered, area select mode:', isAreaSelectMode);
+    
     // Hide the preview window if it's open
     if (mainWindow && !mainWindow.isDestroyed()) {
       mainWindow.hide();
@@ -362,11 +364,39 @@ function initialize() {
     
     // Take new screenshot based on mode
     if (isAreaSelectMode) {
+      console.log('Starting area screenshot...');
       takeAreaScreenshot();
     } else {
+      console.log('Taking full screenshot...');
       takeScreenshot();
     }
   });
+
+  if (!registered) {
+    console.error('Failed to register shortcut CommandOrControl+P');
+  } else {
+    console.log('Shortcut CommandOrControl+P registered successfully');
+  }
+
+  // Register an alternative shortcut for Windows
+  if (process.platform === 'win32') {
+    const altRegistered = globalShortcut.register('Alt+P', () => {
+      console.log('Alt+P triggered, area select mode:', isAreaSelectMode);
+      if (isAreaSelectMode) {
+        console.log('Starting area screenshot...');
+        takeAreaScreenshot();
+      } else {
+        console.log('Taking full screenshot...');
+        takeScreenshot();
+      }
+    });
+
+    if (!altRegistered) {
+      console.error('Failed to register shortcut Alt+P');
+    } else {
+      console.log('Alternative shortcut Alt+P registered successfully for Windows');
+    }
+  }
 }
 
 // Wait for app to be ready

@@ -124,12 +124,12 @@ function checkScreenCapturePermission() {
   if (process.platform === 'darwin') {
     const hasPermission = systemPreferences.getMediaAccessStatus('screen') === 'granted';
     if (!hasPermission) {
-						const dialogOptions = {
+      const dialogOptions = {
         type: 'info',
         title: 'Permission Required',
         message: 'WindPix needs Screen and System Audio Recording permission to function properly.',
         detail: 'Please enable Screen and System Audio Recording for Windsurf in System Settings > Privacy & Security.',
-								buttons: ['OK'],
+        buttons: ['OK'],
         defaultId: 0
       };
 
@@ -205,20 +205,33 @@ async function captureArea(bounds) {
     const fullImage = primarySource.thumbnail;
     const croppedImage = fullImage.crop(bounds);
     
-    // Save to file
+    // Create a temporary file for preview
     const timestamp = new Date().getTime();
-    const imgPath = path.join(app.getPath('pictures'), `screenshot-${timestamp}.png`);
-    fs.writeFileSync(imgPath, croppedImage.toPNG());
-    console.log('Area screenshot saved:', imgPath);
-    
+    const tempImgPath = path.join(app.getPath('temp'), `screenshot-${timestamp}.png`);
+    fs.writeFileSync(tempImgPath, croppedImage.toPNG());
+
     // Copy to clipboard
     clipboard.writeImage(croppedImage);
     console.log('Area screenshot copied to clipboard');
     
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('screenshot-taken', imgPath);
+      mainWindow.webContents.send('screenshot-taken', tempImgPath);
       mainWindow.show();
     }
+
+    // Focus Windsurf app
+    if (process.platform === 'darwin') {
+      shell.executeCommand('osascript -e \'tell application "Windsurf" to activate\'');
+    }
+
+    // Delete temporary file after a short delay to ensure preview is shown
+    setTimeout(() => {
+      try {
+        fs.unlinkSync(tempImgPath);
+      } catch (err) {
+        console.error('Failed to delete temporary screenshot:', err);
+      }
+    }, 5000);
   } catch (error) {
     console.error('Area screenshot failed - Full error:', error);
     if (mainWindow && !mainWindow.isDestroyed()) {
@@ -254,20 +267,33 @@ async function takeScreenshot() {
       throw new Error('No display found');
     }
 
-    // Save to file
+    // Create a temporary file for preview
     const timestamp = new Date().getTime();
-    const imgPath = path.join(app.getPath('pictures'), `screenshot-${timestamp}.png`);
-    fs.writeFileSync(imgPath, primarySource.thumbnail.toPNG());
-    console.log('Screenshot saved:', imgPath);
-    
+    const tempImgPath = path.join(app.getPath('temp'), `screenshot-${timestamp}.png`);
+    fs.writeFileSync(tempImgPath, primarySource.thumbnail.toPNG());
+
     // Copy to clipboard
     clipboard.writeImage(primarySource.thumbnail);
     console.log('Screenshot copied to clipboard');
     
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('screenshot-taken', imgPath);
+      mainWindow.webContents.send('screenshot-taken', tempImgPath);
       mainWindow.show();
     }
+
+    // Focus Windsurf app
+    if (process.platform === 'darwin') {
+      shell.executeCommand('osascript -e \'tell application "Windsurf" to activate\'');
+    }
+
+    // Delete temporary file after a short delay to ensure preview is shown
+    setTimeout(() => {
+      try {
+        fs.unlinkSync(tempImgPath);
+      } catch (err) {
+        console.error('Failed to delete temporary screenshot:', err);
+      }
+    }, 5000);
   } catch (error) {
     console.error('Screenshot failed - Full error:', error);
     if (mainWindow && !mainWindow.isDestroyed()) {

@@ -20,15 +20,36 @@
   },
   "build": {
     "appId": "com.windpix.app",
-    "icon": "512.png",
+    "icon": "assets/512.png",
     "mac": {
-      "category": "public.app-category.productivity"
+      "category": "public.app-category.productivity",
+      "icon": "assets/icon-dock.png",
+      "target": ["dmg"]
+    },
+    "dmg": {
+      "icon": "assets/512.png",
+      "iconSize": 128,
+      "contents": [
+        {
+          "x": 380,
+          "y": 180,
+          "type": "link",
+          "path": "/Applications"
+        },
+        {
+          "x": 130,
+          "y": 180,
+          "type": "file"
+        }
+      ]
     },
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "assets/512.png"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "assets/512.png"
     }
   }
 }

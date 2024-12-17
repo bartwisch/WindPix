@@ -1,5 +1,5 @@
 # Hooman
-hi! this text and the content of "ida.md" is the only text or code you will find in this repo that is not AI. i know its kinda creepy, but i really try to play around with what is currently possible with AI. i first created a mac only app in swift but then asked ai to switch to multiplatform and here we are. yours, hugo bartwisch 
+hi! this text and the content of "markups/idea.md" is the only text or code you will find in this repo that is not AI. i know its kinda creepy, but i really try to play around with what is currently possible with AI. i first created a mac only app in swift but then asked ai to switch to multiplatform and here we are. yours, hugo bartwisch 
 
 # WindPix
 

@@ -1,16 +1,26 @@
+# Hooman
+hi! this text and the content of "ida.md" is the only text or code you will find in this repo that is not AI. i know its kinda creepy, but i really try to play around with what is currently possible with AI. i first created a mac only app in swift but then asked ai to switch to multiplatform and here we are. yours, hugo bartwisch 
+
 # WindPix
 
-A modern Electron-based image viewer and management application. Built with Node.js, it provides an efficient and user-friendly interface for organizing and viewing your photo collection.
+A modern Electron-based screenshot utility for Windows, macOS, and Linux. Built with Node.js, it provides an efficient and user-friendly interface for taking screenshots and feed them into Windsurf.
 
 ![WindPix Logo](windpix-electron/assets/512.png)
+
+## How to use
+1. open WindPix and Windsurf
+2. Press ⌘P (macOS) or Ctrl+P (Windows/Linux) to start a capture
+3. Click and drag to select an area
+4. After taking a screenshot, WindPix will automatically focus on Windsurf
+5. You can press cmd+v or ctrl+v to paste the screenshot into the chat
 
 ## Features
 
 - 📸 Modern image viewer interface
-- 🖼️ Efficient photo management
 - 🚀 Cross-platform support (macOS, Windows, Linux)
 - 💻 Built with Electron and Node.js
-- 🎯 Screenshot utility integration
+- 🎯 Windsurf autofocus
+- Toogle between area select mode and full screen mode
 
 ## Installation
 
